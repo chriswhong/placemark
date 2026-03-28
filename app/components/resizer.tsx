@@ -29,7 +29,12 @@ export function useWindowResizeSplits() {
         const panelsCombined = splits.left + splits.right;
         const remainingSpaceForMap = windowWidth - panelsCombined;
 
+        console.log('windowWidth', windowWidth);
+        console.log('panelsCombined', panelsCombined);
+        console.log('remainingSpaceForMap', remainingSpaceForMap);
+
         if (remainingSpaceForMap > MIN_MAP_WIDTH) {
+          console.log('returning splits', splits);
           return splits;
         }
 
@@ -37,6 +42,7 @@ export function useWindowResizeSplits() {
 
         // First try reducing the left width.
         if (windowWidth - splits.right > MIN_MAP_WIDTH) {
+          console.log('set leftOpen false 1')
           newSplits.leftOpen = false;
           return newSplits;
         }
@@ -46,6 +52,7 @@ export function useWindowResizeSplits() {
         }
 
         newSplits.rightOpen = false;
+        console.log('set leftOpen false 1')
         newSplits.leftOpen = false;
 
         return newSplits;

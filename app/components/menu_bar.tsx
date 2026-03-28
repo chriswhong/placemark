@@ -21,22 +21,14 @@ export const MenuBarPlay = memo(function MenuBar() {
           inline-flex gap-x-2 items-center"
           title="Home"
         >
-          <PlacemarkIcon className="w-8 h-8" />
-          Placemark Play
-          <a
-            href="https://github.com/placemark/placemark"
-            className="text-purple-600 hover:text-purple-700 flex items-center gap-1 text-sm bg-purple-100 px-2 py-1 rounded"
-          >
-            <GitHubLogoIcon />
-            Open Source
-          </a>
+          Left
         </span>
         <FileInfo />
       </div>
       <div className="flex items-center gap-x-2">
-        <MenuBarDropdown />
-
-        <HelpDot />
+        {/* <MenuBarDropdown /> */}
+        Right
+   
       </div>
     </div>
   );

@@ -134,6 +134,8 @@ const customPointerWithin = (
 
 export function FeatureEditorFolder() {
   const splits = useAtomValue(splitsAtom);
+  console.log('splits', splits);
+
   if (!splits.leftOpen) return null;
   return (
     <div
