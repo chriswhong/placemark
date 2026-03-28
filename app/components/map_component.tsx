@@ -7,7 +7,7 @@ import { useHandlers } from "app/lib/handlers/index";
 import { CLICKABLE_LAYERS } from "app/lib/load_and_augment_style";
 import { wrappedFeaturesFromMapFeatures } from "app/lib/map_component_utils";
 import type { PMapHandlers } from "app/lib/pmap";
-import PMap, { DECK_PIN_LAYER_ID } from "app/lib/pmap";
+import PMap, { DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID } from "app/lib/pmap";
 import clsx from "clsx";
 import { captureException } from "integrations/errors";
 import throttle from "lodash/throttle";
@@ -227,20 +227,20 @@ export const MapComponent = memo(function MapComponent({
           ...point,
           layerIds: [DECK_SYNTHETIC_ID],
         });
-        let selectedPinUnderCursor = false;
+        let selectedSpecialMarkerUnderCursor = false;
         if (!syntheticUnderCursor && selection.type === "single") {
-          const pinPick = map.overlay.pickObject({
+          const specialPick = map.overlay.pickObject({
             ...point,
-            layerIds: [DECK_PIN_LAYER_ID],
+            layerIds: [DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID],
           });
-          if (pinPick?.object) {
-            const rawId = pinPick.object.id as RawId;
+          if (specialPick?.object) {
+            const rawId = specialPick.object.id as RawId;
             const decoded = decodeId(rawId);
             const uuid = UIDMap.getUUID(idMap, decoded.featureId);
-            selectedPinUnderCursor = uuid === selection.id;
+            selectedSpecialMarkerUnderCursor = uuid === selection.id;
           }
         }
-        setCursor(syntheticUnderCursor || selectedPinUnderCursor || features.length ? "move" : "");
+        setCursor(syntheticUnderCursor || selectedSpecialMarkerUnderCursor || features.length ? "move" : "");
       } catch (_e) {
         // Deck can throw here if it's just been initialized
         // or uninitialized.

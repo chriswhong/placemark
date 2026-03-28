@@ -53,6 +53,7 @@ export function getKeepProperties({
     ...SIMPLESTYLE_PROPERTIES,
     "marker-size", "name", "icon", "icon-color",
     "marker-type", "pin-body-color", "pin-inner-color", "pin-size",
+    "emoji", "emoji-size",
   ];
   if (previewProperty) {
     keepProperties.push(previewProperty);

@@ -4,7 +4,7 @@ import { ICON_MAP } from "app/lib/icons";
 // Discriminated union types for marker style options
 // ---------------------------------------------------------------------------
 
-export type MarkerType = "circle" | "pin";
+export type MarkerType = "circle" | "pin" | "emoji";
 
 export interface CircleMarkerOptions {
   type: "circle";
@@ -24,7 +24,13 @@ export interface PinMarkerOptions {
   icon: string | null;
 }
 
-export type AnyMarkerOptions = CircleMarkerOptions | PinMarkerOptions;
+export interface EmojiMarkerOptions {
+  type: "emoji";
+  emoji: string;
+  size: number;
+}
+
+export type AnyMarkerOptions = CircleMarkerOptions | PinMarkerOptions | EmojiMarkerOptions;
 
 // ---------------------------------------------------------------------------
 // Defaults
@@ -35,6 +41,77 @@ export const DEFAULT_CIRCLE_STROKE = "#ffffff";
 export const DEFAULT_MARKER_SIZE = 8;
 export const DEFAULT_STROKE_WIDTH = 1;
 export const DEFAULT_ICON_COLOR = "#ffffff";
+
+export const DEFAULT_EMOJI = "🚡";
+export const DEFAULT_EMOJI_SIZE = 32;
+export const EMOJI_CANVAS_SIZE = 64;
+
+export const EMOJI_LIST: { emoji: string; label: string }[] = [
+  { emoji: "🚡", label: "Aerial Tramway" },
+  { emoji: "🏔️", label: "Mountain" },
+  { emoji: "🌊", label: "Wave" },
+  { emoji: "🌲", label: "Evergreen Tree" },
+  { emoji: "🏠", label: "House" },
+  { emoji: "⭐", label: "Star" },
+  { emoji: "❤️", label: "Heart" },
+  { emoji: "🔥", label: "Fire" },
+  { emoji: "🌸", label: "Cherry Blossom" },
+  { emoji: "🎯", label: "Bullseye" },
+  { emoji: "📍", label: "Pushpin" },
+  { emoji: "🏖️", label: "Beach" },
+  { emoji: "🏕️", label: "Camping" },
+  { emoji: "🗺️", label: "World Map" },
+  { emoji: "☕", label: "Coffee" },
+  { emoji: "🍕", label: "Pizza" },
+  { emoji: "🐾", label: "Paw Prints" },
+  { emoji: "🚲", label: "Bicycle" },
+  { emoji: "🎵", label: "Musical Note" },
+  { emoji: "🌺", label: "Hibiscus" },
+];
+
+export type EmojiIconMapping = Record<
+  string,
+  { x: number; y: number; width: number; height: number; anchorX: number; anchorY: number }
+>;
+
+/**
+ * Pre-render all emoji onto a single canvas atlas.
+ * Returns the canvas and a DeckGL iconMapping.
+ * Call once; result is stable for the lifetime of the app.
+ */
+export function buildEmojiAtlas(): {
+  atlas: string;
+  mapping: EmojiIconMapping;
+} {
+  const COLS = 5;
+  const ROWS = Math.ceil(EMOJI_LIST.length / COLS);
+  const canvas = document.createElement("canvas");
+  canvas.width = COLS * EMOJI_CANVAS_SIZE;
+  canvas.height = ROWS * EMOJI_CANVAS_SIZE;
+  const ctx = canvas.getContext("2d")!;
+  ctx.font = `${Math.round(EMOJI_CANVAS_SIZE * 0.8)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const mapping: EmojiIconMapping = {};
+  EMOJI_LIST.forEach(({ emoji }, i) => {
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const x = col * EMOJI_CANVAS_SIZE;
+    const y = row * EMOJI_CANVAS_SIZE;
+    ctx.fillText(emoji, x + EMOJI_CANVAS_SIZE / 2, y + EMOJI_CANVAS_SIZE / 2);
+    mapping[emoji] = {
+      x,
+      y,
+      width: EMOJI_CANVAS_SIZE,
+      height: EMOJI_CANVAS_SIZE,
+      anchorX: EMOJI_CANVAS_SIZE / 2,
+      anchorY: EMOJI_CANVAS_SIZE / 2,
+    };
+  });
+
+  return { atlas: canvas.toDataURL(), mapping };
+}
 
 export const DEFAULT_PIN_BODY_COLOR = "#43538D";
 export const DEFAULT_PIN_INNER_COLOR = "#6B82D6";
@@ -47,6 +124,13 @@ export const DEFAULT_PIN_SIZE = 40; // height in pixels
 export function getMarkerOptions(
   props: Record<string, unknown>,
 ): AnyMarkerOptions {
+  if (props["marker-type"] === "emoji") {
+    return {
+      type: "emoji",
+      emoji: typeof props["emoji"] === "string" ? props["emoji"] : DEFAULT_EMOJI,
+      size: typeof props["emoji-size"] === "number" ? props["emoji-size"] : DEFAULT_EMOJI_SIZE,
+    };
+  }
   if (props["marker-type"] === "pin") {
     return {
       type: "pin",

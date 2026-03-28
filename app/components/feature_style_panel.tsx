@@ -4,6 +4,9 @@ import {
   DEFAULT_PIN_BODY_COLOR,
   DEFAULT_PIN_INNER_COLOR,
   DEFAULT_PIN_SIZE,
+  DEFAULT_EMOJI,
+  DEFAULT_EMOJI_SIZE,
+  EMOJI_LIST,
   type AnyMarkerOptions,
 } from "app/lib/marker_types";
 import { ICONS, iconToDataUrl } from "app/lib/icons";
@@ -52,6 +55,10 @@ function FeatureStylePanelInner({
   const pinOpts = markerOptions.type === "pin" ? markerOptions : null;
   const [localPinSize, setLocalPinSize] = useState(pinOpts?.size ?? DEFAULT_PIN_SIZE);
 
+  // Emoji-specific
+  const emojiOpts = markerOptions.type === "emoji" ? markerOptions : null;
+  const [localEmojiSize, setLocalEmojiSize] = useState(emojiOpts?.size ?? DEFAULT_EMOJI_SIZE);
+
   // Refs to suppress useEffect sync while the user is typing
   const nameFocused = useRef(false);
   const descriptionFocused = useRef(false);
@@ -61,6 +68,7 @@ function FeatureStylePanelInner({
   useEffect(() => { setLocalMarkerSize(circleOpts?.markerSize ?? 8); }, [circleOpts?.markerSize]);
   useEffect(() => { setLocalStrokeWidth(circleOpts?.strokeWidth ?? 1); }, [circleOpts?.strokeWidth]);
   useEffect(() => { setLocalPinSize(pinOpts?.size ?? DEFAULT_PIN_SIZE); }, [pinOpts?.size]);
+  useEffect(() => { setLocalEmojiSize(emojiOpts?.size ?? DEFAULT_EMOJI_SIZE); }, [emojiOpts?.size]);
 
   const wrappedFeatureRef = useRef(wrappedFeature);
   wrappedFeatureRef.current = wrappedFeature;
@@ -163,26 +171,21 @@ function FeatureStylePanelInner({
           <div className="flex flex-col gap-3">
             {/* Marker type switcher */}
             <div className="flex rounded overflow-hidden border border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => setProps({ "marker-type": "circle" })}
-                className={`flex-1 text-sm py-1 px-3 transition-colors ${
-                  markerOptions.type === "circle"
-                    ? "bg-purple-600 text-white"
-                    : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                }`}
-              >
-                Circle
-              </button>
-              <button
-                onClick={() => setProps({ "marker-type": "pin" })}
-                className={`flex-1 text-sm py-1 px-3 transition-colors border-l border-gray-200 dark:border-gray-700 ${
-                  markerOptions.type === "pin"
-                    ? "bg-purple-600 text-white"
-                    : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                }`}
-              >
-                Pin
-              </button>
+              {(["circle", "pin", "emoji"] as const).map((type, i) => (
+                <button
+                  key={type}
+                  onClick={() => setProps({ "marker-type": type })}
+                  className={`flex-1 text-sm py-1 px-2 transition-colors capitalize ${
+                    i > 0 ? "border-l border-gray-200 dark:border-gray-700" : ""
+                  } ${
+                    markerOptions.type === type
+                      ? "bg-purple-600 text-white"
+                      : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
             </div>
 
             {/* ── Circle controls ── */}
@@ -306,6 +309,37 @@ function FeatureStylePanelInner({
                 />
               </>
             )}
+
+            {/* ── Emoji controls ── */}
+            {markerOptions.type === "emoji" && (
+              <>
+                <EmojiPicker
+                  selected={markerOptions.emoji}
+                  onSelect={(e) => setProps({ emoji: e })}
+                />
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Size</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {localEmojiSize}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={16}
+                    max={80}
+                    step={2}
+                    value={localEmojiSize}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setLocalEmojiSize(v);
+                      updateProps({ "emoji-size": v });
+                    }}
+                    className="w-full accent-purple-600"
+                  />
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -321,6 +355,40 @@ function FeatureStylePanelInner({
             />
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Emoji picker
+// ---------------------------------------------------------------------------
+
+function EmojiPicker({
+  selected,
+  onSelect,
+}: {
+  selected: string;
+  onSelect: (emoji: string) => void;
+}) {
+  return (
+    <div>
+      <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">Emoji</div>
+      <div className="grid grid-cols-5 gap-1.5">
+        {EMOJI_LIST.map(({ emoji, label }) => (
+          <button
+            key={emoji}
+            title={label}
+            onClick={() => onSelect(emoji)}
+            className={`flex items-center justify-center rounded h-9 border text-xl ${
+              selected === emoji
+                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30"
+                : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+            }`}
+          >
+            {emoji}
+          </button>
+        ))}
       </div>
     </div>
   );

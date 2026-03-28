@@ -36,6 +36,40 @@ import type { FlattenedFeature, FlattenedFolder, FlattenedItem } from "./math";
 const visibilityToggleClass =
   "hidden opacity-30 hover:opacity-100 group-hover:inline-block pr-2";
 
+function GeometryIcon({ type }: { type: string | undefined }) {
+  const cls = "shrink-0 opacity-40 mr-1.5";
+  switch (type) {
+    case "Point":
+    case "MultiPoint":
+      return (
+        <svg className={cls} width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+          <circle cx="6" cy="6" r="3.5" />
+          {type === "MultiPoint" && <circle cx="2" cy="2" r="1.5" />}
+        </svg>
+      );
+    case "LineString":
+    case "MultiLineString":
+      return (
+        <svg className={cls} width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <polyline points="1,9 4,4 8,7 11,2" />
+        </svg>
+      );
+    case "Polygon":
+    case "MultiPolygon":
+      return (
+        <svg className={cls} width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
+          <polygon points="6,1 11,4 11,9 1,9 1,4" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className={cls} width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <line x1="3" y1="6" x2="9" y2="6" />
+        </svg>
+      );
+  }
+}
+
 function ItemFolder({
   rep,
   item,
@@ -239,7 +273,11 @@ function ItemFeature({
   const selected = USelection.isSelected(sel, feature.id);
   const folderSelected =
     feature.folderId && USelection.isFolderSelected(sel, feature.folderId);
-  const geometryLabel = feature.feature.geometry?.type || "Null geometry";
+  const geometryType = feature.feature.geometry?.type;
+  const geometryLabel = geometryType || "Null geometry";
+  const nameVal = typeof feature.feature.properties?.name === "string" && feature.feature.properties.name
+    ? feature.feature.properties.name
+    : null;
   const previewVal = limitPreviewValue(
     (preview && feature.feature.properties?.[preview]) as JsonValue,
   );
@@ -329,14 +367,17 @@ function ItemFeature({
       data-at={item.at}
     >
       <Spacer selected={selState} depth={depth} feature />
-      <span className="block select-none truncate flex-auto">
-        {previewVal ? (
-          <>
-            {previewVal} <span className="opacity-20">{geometryLabel}</span>
-          </>
-        ) : (
-          geometryLabel
-        )}
+      <span className="flex items-center select-none truncate flex-auto min-w-0">
+        <GeometryIcon type={geometryType} />
+        <span className="truncate">
+          {nameVal ? (
+            nameVal
+          ) : previewVal ? (
+            previewVal
+          ) : (
+            <span className="opacity-50">{geometryLabel}</span>
+          )}
+        </span>
       </span>
       <div
         role="checkbox"

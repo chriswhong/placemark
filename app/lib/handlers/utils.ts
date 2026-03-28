@@ -28,7 +28,7 @@ import { type IDMap, UIDMap } from "../id_mapper";
 import { DECK_FEATURES_ID } from "../load_and_augment_style";
 import type { IPersistence } from "../persistence/ipersistence";
 import type PMap from "../pmap";
-import { DECK_PIN_LAYER_ID } from "../pmap";
+import { DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID } from "../pmap";
 
 type PutFeature = MomentInput["putFeatures"][0];
 
@@ -89,7 +89,7 @@ const getNeighborCandidate = (
     x: point.x,
     y: point.y,
     radius: 12,
-    layerIds: [DECK_FEATURES_ID, DECK_PIN_LAYER_ID],
+    layerIds: [DECK_FEATURES_ID, DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID],
   });
 
   if (!picks?.length) return null;

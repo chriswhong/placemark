@@ -5,7 +5,7 @@ import {
   DECK_EPHEMERAL_ID,
   DECK_FEATURES_ID,
 } from "app/lib/load_and_augment_style";
-import { DECK_PIN_LAYER_ID } from "app/lib/pmap";
+import { DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID } from "app/lib/pmap";
 import type PMap from "app/lib/pmap";
 import sortBy from "lodash/sortBy";
 import type { EphemeralEditingStateLasso } from "state/jotai";
@@ -135,7 +135,7 @@ export function fuzzyClick(
     }
   }
 
-  const featureLayers = [DECK_FEATURES_ID, DECK_EPHEMERAL_ID, DECK_PIN_LAYER_ID];
+  const featureLayers = [DECK_FEATURES_ID, DECK_EPHEMERAL_ID, DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID];
   const deckFeaturePick = pmap.overlay.pickObject({
     ...e.point,
     layerIds: featureLayers,

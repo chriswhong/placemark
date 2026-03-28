@@ -11,6 +11,10 @@ import {
   PIN_VIEWBOX_H,
   PIN_INNER_CENTER_ABOVE_TIP_FRACTION,
   PIN_HALF_WIDTH_FRACTION,
+  buildEmojiAtlas,
+  type EmojiIconMapping,
+  DEFAULT_EMOJI,
+  DEFAULT_EMOJI_SIZE,
 } from "app/lib/marker_types";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { colorFromPresence } from "app/lib/color";
@@ -55,10 +59,15 @@ const DECK_POINT_SELECTION_ID = "deckgl-point-selection";
 const DECK_POINT_LABELS_ID = "deckgl-point-labels";
 const DECK_POINT_ICONS_ID = "deckgl-point-icons";
 export const DECK_PIN_LAYER_ID = "deckgl-pins";
+export const DECK_EMOJI_LAYER_ID = "deckgl-emoji";
 
 const isPinFeature = (f: { geometry?: { type?: string } | null; properties?: Record<string, unknown> | null }) =>
   f.geometry?.type === "Point" &&
   (f.properties as Record<string, unknown> | null | undefined)?.["marker-type"] === "pin";
+
+const isEmojiFeature = (f: { geometry?: { type?: string } | null; properties?: Record<string, unknown> | null }) =>
+  f.geometry?.type === "Point" &&
+  (f.properties as Record<string, unknown> | null | undefined)?.["marker-type"] === "emoji";
 
 /**
  * Build a rounded-rectangle path in screen space (pixels) around (cx, cy),
@@ -197,6 +206,8 @@ export default class PMap {
   lastPreviewProperty: PreviewProperty;
   overlay: MapboxOverlay;
   lastSelectionEphemeralPoint: GeoJSON.Feature | null = null;
+  emojiAtlas: string | null = null;
+  emojiMapping: EmojiIconMapping | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lastDeckLayers: any[] = [];
 
@@ -312,6 +323,10 @@ export default class PMap {
       const pinH = typeof props["pin-size"] === "number" ? (props["pin-size"] as number) : DEFAULT_PIN_SIZE;
       const pinW = pinH * (PIN_VIEWBOX_W / PIN_VIEWBOX_H);
       return buildRoundedRectPath(center.x, center.y - pinH / 2, pinW + 8, pinH + 8, 3, this.map);
+    } else if (props["marker-type"] === "emoji") {
+      const emojiSize = typeof props["emoji-size"] === "number" ? (props["emoji-size"] as number) : DEFAULT_EMOJI_SIZE;
+      const side = emojiSize + 10;
+      return buildRoundedRectPath(center.x, center.y, side, side, 5, this.map);
     } else {
       const r = typeof props["marker-size"] === "number" ? (props["marker-size"] as number) : 8;
       const side = r * 2 + 10;
@@ -501,12 +516,16 @@ export default class PMap {
         },
       });
 
-    // Split point features so pin markers are rendered by their own layer
-    const nonPinFeatures = groups.features.filter((f) => !isPinFeature(f));
-    const nonPinEphemeral = groups.ephemeral.filter((f) => !isPinFeature(f));
+    // Split point features so pin and emoji markers are rendered by their own layers
+    const nonSpecialFeatures = groups.features.filter((f) => !isPinFeature(f) && !isEmojiFeature(f));
+    const nonSpecialEphemeral = groups.ephemeral.filter((f) => !isPinFeature(f) && !isEmojiFeature(f));
     const allPinFeatures = [
       ...groups.features.filter(isPinFeature),
       ...groups.ephemeral.filter(isPinFeature),
+    ] as GeoJSON.Feature[];
+    const allEmojiFeatures = [
+      ...groups.features.filter(isEmojiFeature),
+      ...groups.ephemeral.filter(isEmojiFeature),
     ] as GeoJSON.Feature[];
 
     // Compute selection outline polygon in screen space, then unproject to lng/lat
@@ -517,8 +536,8 @@ export default class PMap {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nextLayers: any[] = [
-        makeGeoJsonLayer(DECK_FEATURES_ID, nonPinFeatures, groups.selectionIds),
-        makeGeoJsonLayer(DECK_EPHEMERAL_ID, nonPinEphemeral, new Set()),
+        makeGeoJsonLayer(DECK_FEATURES_ID, nonSpecialFeatures, groups.selectionIds),
+        makeGeoJsonLayer(DECK_EPHEMERAL_ID, nonSpecialEphemeral, new Set()),
         new ScatterplotLayer<IFeature<Point>>({
           id: DECK_SYNTHETIC_ID,
 
@@ -590,12 +609,42 @@ export default class PMap {
               : DEFAULT_PIN_SIZE,
           sizeUnits: "pixels",
         }),
+        (() => {
+          if (!this.emojiAtlas) {
+            const { atlas, mapping } = buildEmojiAtlas();
+            this.emojiAtlas = atlas;
+            this.emojiMapping = mapping;
+          }
+          return new IconLayer<GeoJSON.Feature>({
+            id: DECK_EMOJI_LAYER_ID,
+            data: allEmojiFeatures,
+            pickable: true,
+            iconAtlas: this.emojiAtlas,
+            iconMapping: this.emojiMapping!,
+            getPosition: (f) =>
+              (f.geometry as GeoJSON.Point).coordinates as [number, number],
+            getIcon: (f: GeoJSON.Feature) => {
+              const p = (f.properties ?? {}) as Record<string, unknown>;
+              return typeof p["emoji"] === "string" ? p["emoji"] : DEFAULT_EMOJI;
+            },
+            getSize: (f: GeoJSON.Feature) =>
+              typeof f.properties?.["emoji-size"] === "number"
+                ? f.properties["emoji-size"]
+                : DEFAULT_EMOJI_SIZE,
+            sizeUnits: "pixels",
+            updateTriggers: {
+              getIcon: [allEmojiFeatures],
+              getSize: [allEmojiFeatures],
+            },
+          });
+        })(),
         new IconLayer<GeoJSON.Feature>({
           id: DECK_POINT_ICONS_ID,
           data: [...groups.features, ...groups.ephemeral].filter(
             (f) =>
               f.geometry?.type === "Point" &&
               f.properties?.["marker-type"] !== "pin" &&
+              f.properties?.["marker-type"] !== "emoji" &&
               typeof f.properties?.icon === "string" &&
               DECK_ICON_DESCRIPTORS.has(f.properties.icon),
           ),
