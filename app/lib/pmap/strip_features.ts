@@ -47,8 +47,9 @@ export function getKeepProperties({
   symbolization: ISymbolization | null;
   previewProperty: PreviewProperty;
 }) {
-  // Always keep simplestyle color properties for DeckGL rendering.
-  let keepProperties: string[] = [...SIMPLESTYLE_PROPERTIES];
+  // Always keep simplestyle color properties for DeckGL rendering,
+  // plus marker-specific display properties.
+  let keepProperties: string[] = [...SIMPLESTYLE_PROPERTIES, "marker-size", "name"];
   if (previewProperty) {
     keepProperties.push(previewProperty);
   }

@@ -1,4 +1,4 @@
-import { GeoJsonLayer, IconLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, IconLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { colorFromPresence } from "app/lib/color";
 import {
@@ -39,6 +39,7 @@ import type * as GeoJSON from "geojson";
 import { bboxToPolygon } from "../geometry";
 
 const DECK_POINT_SELECTION_ID = "deckgl-point-selection";
+const DECK_POINT_LABELS_ID = "deckgl-point-labels";
 
 const SELECTION_RECT_ICON = {
   url: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect x="2" y="2" width="28" height="28" rx="5" ry="5" fill="none" stroke="${LINE_COLORS_SELECTED}" stroke-width="2.5"/></svg>`)}`,
@@ -354,7 +355,7 @@ export default class PMap {
           const type = f.geometry?.type;
           const isPoint = type === "Point" || type === "MultiPoint";
           const colorStr = isPoint
-            ? (props["stroke"] as string | undefined)
+            ? (props["fill"] as string | undefined)
             : (props["fill"] as string | undefined);
           const color = parseColor(colorStr ?? null, defaultColor);
           const rawOpacity =
@@ -384,7 +385,10 @@ export default class PMap {
             : 2;
         },
         lineWidthUnits: "pixels" as const,
-        getPointRadius: 5,
+        getPointRadius: (f: GeoJSON.Feature) => {
+          const props = (f.properties ?? {}) as Record<string, unknown>;
+          return typeof props["marker-size"] === "number" ? props["marker-size"] : 8;
+        },
         pointRadiusUnits: "pixels" as const,
         updateTriggers: {
           getFillColor: [selectionIds, defaultColor, defaultOpacity],
@@ -436,8 +440,45 @@ export default class PMap {
           pickable: false,
           getPosition: (d) => d.geometry.coordinates as [number, number],
           getIcon: () => SELECTION_RECT_ICON,
-          getSize: 32,
+          getSize: (() => {
+            const fpPoint = groups.ephemeral.find(
+              (f) => f.geometry?.type === "Point",
+            );
+            const markerRadius =
+              typeof fpPoint?.properties?.["marker-size"] === "number"
+                ? fpPoint.properties["marker-size"]
+                : 8;
+            return markerRadius * 4;
+          })(),
           sizeUnits: "pixels",
+        }),
+        new TextLayer<GeoJSON.Feature>({
+          id: DECK_POINT_LABELS_ID,
+          data: [...groups.features, ...groups.ephemeral].filter(
+            (f) =>
+              f.geometry?.type === "Point" &&
+              typeof f.properties?.name === "string" &&
+              (f.properties.name as string).length > 0,
+          ),
+          pickable: false,
+          getPosition: (f) =>
+            (f.geometry as GeoJSON.Point).coordinates as [number, number],
+          getText: (f) => f.properties?.name as string,
+          getSize: 13,
+          sizeUnits: "pixels",
+          fontFamily: "ui-sans-serif, system-ui, sans-serif",
+          fontWeight: "bold",
+          getColor: [30, 30, 30, 255],
+          background: false,
+          getPixelOffset: (f: GeoJSON.Feature) => {
+            const r =
+              typeof f.properties?.["marker-size"] === "number"
+                ? f.properties["marker-size"]
+                : 8;
+            return [r + 6, 0];
+          },
+          getTextAnchor: "start",
+          getAlignmentBaseline: "center",
         }),
       ],
     });
