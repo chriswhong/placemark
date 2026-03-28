@@ -47,13 +47,10 @@ export function getKeepProperties({
   symbolization: ISymbolization | null;
   previewProperty: PreviewProperty;
 }) {
-  let keepProperties: string[] = [];
+  // Always keep simplestyle color properties for DeckGL rendering.
+  let keepProperties: string[] = [...SIMPLESTYLE_PROPERTIES];
   if (previewProperty) {
     keepProperties.push(previewProperty);
-  }
-
-  if (symbolization?.simplestyle) {
-    keepProperties = keepProperties.concat(SIMPLESTYLE_PROPERTIES);
   }
 
   switch (symbolization?.type) {

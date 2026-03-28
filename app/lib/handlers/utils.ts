@@ -9,7 +9,7 @@ import type {
   LineString as TurfLineString,
   MultiLineString as TurfMultiLineString,
 } from "geojson";
-import type { MapMouseEvent, MapTouchEvent, PointLike } from "mapbox-gl";
+import type { MapMouseEvent, MapTouchEvent } from "mapbox-gl";
 import { toast } from "react-hot-toast";
 import { type ModeWithOptions, USelection } from "state";
 import type { Data, Sel } from "state/jotai";
@@ -25,7 +25,7 @@ import type {
 } from "types";
 import { env } from "../env_client";
 import { type IDMap, UIDMap } from "../id_mapper";
-import { CLICKABLE_LAYERS } from "../load_and_augment_style";
+import { DECK_FEATURES_ID } from "../load_and_augment_style";
 import type { IPersistence } from "../persistence/ipersistence";
 import type PMap from "../pmap";
 
@@ -84,24 +84,20 @@ const getNeighborCandidate = (
   idMap: IDMap,
   excludeFeatureId?: string,
 ): string | null => {
-  const { x, y } = point;
-  const distance = 12;
-  const searchBox = [
-    [x - distance, y - distance] as PointLike,
-    [x + distance, y + distance] as PointLike,
-  ] as [PointLike, PointLike];
-
-  const pointFeatures = pmap.map.queryRenderedFeatures(searchBox, {
-    layers: CLICKABLE_LAYERS,
+  const picks = pmap.overlay.pickMultipleObjects({
+    x: point.x,
+    y: point.y,
+    radius: 12,
+    layerIds: [DECK_FEATURES_ID],
   });
 
-  if (!pointFeatures.length) return null;
+  if (!picks?.length) return null;
 
-  for (const feature of pointFeatures) {
-    const id = feature.id;
-    const decodedId = decodeId(id as RawId);
+  for (const pick of picks) {
+    const id = pick.object?.id as RawId | undefined;
+    if (id === undefined) continue;
+    const decodedId = decodeId(id);
     const uuid = UIDMap.getUUID(idMap, decodedId.featureId);
-
     if (uuid !== excludeFeatureId) {
       return uuid;
     }

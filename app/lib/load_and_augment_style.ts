@@ -31,6 +31,10 @@ export const FEATURES_SOURCE_NAME = "features";
 export const LASSO_SOURCE_NAME = "lasso";
 export const EPHEMERAL_SOURCE_NAME = "ephemeral";
 
+// DeckGL layer IDs for user-generated GeoJSON rendering.
+export const DECK_FEATURES_ID = "features-deck";
+export const DECK_EPHEMERAL_ID = "ephemeral-deck";
+
 const EPHEMERAL_LINE_LAYER_NAME = "ephemeral-line";
 const EPHEMERAL_FILL_LAYER_NAME = "ephemeral-fill";
 
@@ -118,8 +122,7 @@ export function addEditingLayers({
   symbolization: ISymbolization;
   previewProperty: PreviewProperty;
 }) {
-  style.sources[FEATURES_SOURCE_NAME] = emptyGeoJSONSource;
-  style.sources[EPHEMERAL_SOURCE_NAME] = emptyGeoJSONSource;
+  // Only add the lasso source; features and ephemeral are rendered by DeckGL.
   style.sources[LASSO_SOURCE_NAME] = emptyGeoJSONSource;
 
   if (!style.layers) {
@@ -132,73 +135,14 @@ export function addEditingLayers({
 }
 
 export function makeLayers({
-  symbolization,
-  previewProperty,
+  symbolization: _symbolization,
+  previewProperty: _previewProperty,
 }: {
   symbolization: ISymbolization;
   previewProperty: PreviewProperty;
 }): mapboxgl.AnyLayer[] {
   return [
-    // Real polygons, from the dataset.
-    {
-      id: FEATURES_FILL_LAYER_NAME,
-      type: "fill",
-      source: FEATURES_SOURCE_NAME,
-      filter: CONTENT_LAYER_FILTERS[FEATURES_FILL_LAYER_NAME],
-      paint: FILL_PAINT(symbolization),
-    },
-
-    // Real lines, from the dataset.
-    {
-      id: FEATURES_LINE_LAYER_NAME,
-      type: "line",
-      source: FEATURES_SOURCE_NAME,
-      filter: CONTENT_LAYER_FILTERS[FEATURES_LINE_LAYER_NAME],
-      paint: LINE_PAINT(symbolization),
-    },
-
-    {
-      id: EPHEMERAL_FILL_LAYER_NAME,
-      type: "fill",
-      source: EPHEMERAL_SOURCE_NAME,
-      filter: ["==", "$type", "Polygon"],
-      paint: FILL_PAINT(symbolization),
-    },
-
-    // Real lines, from the dataset.
-    {
-      id: EPHEMERAL_LINE_LAYER_NAME,
-      type: "line",
-      source: EPHEMERAL_SOURCE_NAME,
-      filter: [
-        "any",
-        ["==", "$type", "LineString"],
-        ["==", "$type", "Polygon"],
-      ],
-      paint: LINE_PAINT(symbolization),
-    },
-
-    // Real points, from the dataset.
-    {
-      id: FEATURES_POINT_HALO_LAYER_NAME,
-      type: "circle",
-      source: FEATURES_SOURCE_NAME,
-      layout: CIRCLE_LAYOUT,
-      filter: CONTENT_LAYER_FILTERS[FEATURES_POINT_LAYER_NAME],
-      paint: CIRCLE_PAINT(symbolization, true),
-    },
-
-    // Real points, from the dataset.
-    {
-      id: FEATURES_POINT_LAYER_NAME,
-      type: "circle",
-      source: FEATURES_SOURCE_NAME,
-      layout: CIRCLE_LAYOUT,
-      filter: CONTENT_LAYER_FILTERS[FEATURES_POINT_LAYER_NAME],
-      paint: CIRCLE_PAINT(symbolization),
-    },
-
-    // The lasso
+    // The lasso selection box. Features are rendered by DeckGL GeoJsonLayer.
     {
       id: LASSO_LAYER_NAME,
       type: "fill",
@@ -210,44 +154,6 @@ export function makeLayers({
         "fill-outline-color": "#905803",
       },
     },
-
-    ...(typeof previewProperty === "string"
-      ? [
-          {
-            id: FEATURES_POINT_LABEL_LAYER_NAME,
-            type: "symbol",
-            source: FEATURES_SOURCE_NAME,
-            paint: LABEL_PAINT(symbolization, previewProperty),
-            layout: LABEL_LAYOUT(previewProperty, "point"),
-            filter: addPreviewFilter(
-              CONTENT_LAYER_FILTERS[FEATURES_POINT_LAYER_NAME],
-              previewProperty,
-            ),
-          } as mapboxgl.AnyLayer,
-          {
-            id: FEATURES_LINE_LABEL_LAYER_NAME,
-            type: "symbol",
-            source: FEATURES_SOURCE_NAME,
-            paint: LABEL_PAINT(symbolization, previewProperty),
-            layout: LABEL_LAYOUT(previewProperty, "line"),
-            filter: addPreviewFilter(
-              CONTENT_LAYER_FILTERS[FEATURES_LINE_LAYER_NAME],
-              previewProperty,
-            ),
-          } as mapboxgl.AnyLayer,
-          {
-            id: FEATURES_FILL_LABEL_LAYER_NAME,
-            type: "symbol",
-            source: FEATURES_SOURCE_NAME,
-            paint: LABEL_PAINT(symbolization, previewProperty),
-            layout: LABEL_LAYOUT(previewProperty, "point"),
-            filter: addPreviewFilter(
-              CONTENT_LAYER_FILTERS[FEATURES_FILL_LAYER_NAME],
-              previewProperty,
-            ),
-          } as mapboxgl.AnyLayer,
-        ]
-      : []),
   ];
 }
 
@@ -471,12 +377,5 @@ export function LINE_PAINT(
   };
 }
 
-const CONTENT_LAYERS = [
-  FEATURES_POINT_LAYER_NAME,
-  FEATURES_FILL_LAYER_NAME,
-  FEATURES_LINE_LAYER_NAME,
-];
-
-export const CLICKABLE_LAYERS = CONTENT_LAYERS.concat([
-  EPHEMERAL_FILL_LAYER_NAME,
-]);
+// CLICKABLE_LAYERS is now empty: feature picking is handled by DeckGL.
+export const CLICKABLE_LAYERS: string[] = [];

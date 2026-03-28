@@ -1,20 +1,22 @@
-import { ScatterplotLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { colorFromPresence } from "app/lib/color";
 import {
   CURSOR_DEFAULT,
   DECK_SYNTHETIC_ID,
   DEFAULT_MAP_BOUNDS,
-  emptySelection,
+  LINE_COLORS_SELECTED,
   LINE_COLORS_SELECTED_RGB,
+  purple900,
   WHITE,
 } from "app/lib/constants";
 import type { IDMap } from "app/lib/id_mapper";
 import loadAndAugmentStyle, {
-  EPHEMERAL_SOURCE_NAME,
-  FEATURES_SOURCE_NAME,
+  DECK_EPHEMERAL_ID,
+  DECK_FEATURES_ID,
   LASSO_SOURCE_NAME,
 } from "app/lib/load_and_augment_style";
+import * as d3 from "d3-color";
 import { splitFeatureGroups } from "app/lib/pmap/split_feature_groups";
 import { shallowArrayEqual } from "app/lib/utils";
 import mapboxgl from "mapbox-gl";
@@ -33,7 +35,16 @@ import type {
   LayerConfigMap,
   Point,
 } from "types";
+import type * as GeoJSON from "geojson";
 import { bboxToPolygon } from "../geometry";
+
+const DECK_POINT_SELECTION_ID = "deckgl-point-selection";
+
+const SELECTION_RECT_ICON = {
+  url: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect x="2" y="2" width="28" height="28" rx="5" ry="5" fill="none" stroke="${LINE_COLORS_SELECTED}" stroke-width="2.5"/></svg>`)}`,
+  width: 32,
+  height: 32,
+};
 
 const MAP_OPTIONS: Omit<mapboxgl.MapboxOptions, "container"> = {
   style: { version: 8, layers: [], sources: {} },
@@ -100,13 +111,30 @@ function mSetData(
   }
 }
 
+/**
+ * Parse a CSS/hex color string into a DeckGL RGBA array [r, g, b, a].
+ */
+function parseColor(
+  colorStr: string | null | undefined,
+  fallback: string,
+): [number, number, number, number] {
+  const c = d3.color(colorStr || fallback) ?? d3.color(fallback);
+  if (!c) return [0, 0, 0, 255];
+  const rgb = c.rgb();
+  return [
+    Math.round(Math.max(0, Math.min(255, rgb.r))),
+    Math.round(Math.max(0, Math.min(255, rgb.g))),
+    Math.round(Math.max(0, Math.min(255, rgb.b))),
+    Math.round(Math.max(0, Math.min(255, rgb.opacity * 255))),
+  ];
+}
+
 export default class PMap {
   map: mapboxgl.Map;
   handlers: React.MutableRefObject<PMapHandlers>;
   idMap: IDMap;
 
   lastSelection: Sel;
-  lastSelectionIds: Set<RawId>;
   lastData: Data | null;
   lastEphemeralState: EphemeralEditingState;
   lastSymbolization: ISymbolization | null;
@@ -184,7 +212,6 @@ export default class PMap {
     this.lastSymbolization = symbolization;
 
     this.lastSelection = { type: "none" };
-    this.lastSelectionIds = emptySelection;
     this.lastData = null;
     this.lastEphemeralState = { type: "none" };
     this.lastLayer = null;
@@ -279,23 +306,12 @@ export default class PMap {
       return;
     }
 
-    const featuresSource = this.map.getSource(
-      FEATURES_SOURCE_NAME,
-    ) as mapboxgl.GeoJSONSource;
-
     const lassoSource = this.map.getSource(
       LASSO_SOURCE_NAME,
     ) as mapboxgl.GeoJSONSource;
 
-    const ephemeralSource = this.map.getSource(
-      EPHEMERAL_SOURCE_NAME,
-    ) as mapboxgl.GeoJSONSource;
-
-    if (!featuresSource || !ephemeralSource) {
-      // Set the lastFeatureList here
-      // so that the setStyle method will
-      // add it again. This happens when the map
-      // is initially loaded.
+    if (!lassoSource) {
+      // Style hasn't loaded yet; store data so setStyle re-applies it.
       this.lastData = data;
       return;
     }
@@ -307,19 +323,80 @@ export default class PMap {
       previewProperty: this.lastPreviewProperty,
     });
 
-    // console.log(
-    //   "in setData",
-    //   JSON.stringify({
-    //     newSelection,
-    //     outputIds: [...groups.selectionIds],
-    //   })
-    // );
-    // TODO: fix flash
-    mSetData(ephemeralSource, groups.ephemeral, "ephem");
-    mSetData(featuresSource, groups.features, "features", force);
+    const defaultColor = this.lastSymbolization?.defaultColor ?? purple900;
+    const defaultOpacity =
+      typeof this.lastSymbolization?.defaultOpacity === "number"
+        ? this.lastSymbolization.defaultOpacity
+        : 0.3;
+
+    const SELECTED: [number, number, number, number] = [
+      ...LINE_COLORS_SELECTED_RGB,
+      255,
+    ];
+
+    const makeGeoJsonLayer = (
+      id: string,
+      features: Feature[],
+      selectionIds: Set<RawId>,
+    ) =>
+      new GeoJsonLayer({
+        id,
+        data: {
+          type: "FeatureCollection" as const,
+          features: features as GeoJSON.Feature[],
+        },
+        pickable: true,
+        filled: true,
+        stroked: true,
+        getFillColor: (f: GeoJSON.Feature) => {
+          if (selectionIds.has(f.id as RawId)) return SELECTED;
+          const props = (f.properties ?? {}) as Record<string, unknown>;
+          const type = f.geometry?.type;
+          const isPoint = type === "Point" || type === "MultiPoint";
+          const colorStr = isPoint
+            ? (props["stroke"] as string | undefined)
+            : (props["fill"] as string | undefined);
+          const color = parseColor(colorStr ?? null, defaultColor);
+          const rawOpacity =
+            !isPoint && (type === "Polygon" || type === "MultiPolygon")
+              ? props["fill-opacity"]
+              : isPoint
+                ? 1
+                : defaultOpacity;
+          color[3] = Math.round(
+            (typeof rawOpacity === "number" ? rawOpacity : defaultOpacity) *
+              255,
+          );
+          return color;
+        },
+        getLineColor: (f: GeoJSON.Feature) => {
+          if (selectionIds.has(f.id as RawId)) return SELECTED;
+          const props = (f.properties ?? {}) as Record<string, unknown>;
+          return parseColor(
+            (props["stroke"] as string | undefined) ?? null,
+            defaultColor,
+          );
+        },
+        getLineWidth: (f: GeoJSON.Feature) => {
+          const props = (f.properties ?? {}) as Record<string, unknown>;
+          return typeof props["stroke-width"] === "number"
+            ? props["stroke-width"]
+            : 2;
+        },
+        lineWidthUnits: "pixels" as const,
+        getPointRadius: 5,
+        pointRadiusUnits: "pixels" as const,
+        updateTriggers: {
+          getFillColor: [selectionIds, defaultColor, defaultOpacity],
+          getLineColor: [selectionIds, defaultColor],
+          getLineWidth: [],
+        },
+      });
 
     this.overlay.setProps({
       layers: [
+        makeGeoJsonLayer(DECK_FEATURES_ID, groups.features, groups.selectionIds),
+        makeGeoJsonLayer(DECK_EPHEMERAL_ID, groups.ephemeral, new Set()),
         new ScatterplotLayer<IFeature<Point>>({
           id: DECK_SYNTHETIC_ID,
 
@@ -334,22 +411,33 @@ export default class PMap {
 
           getPosition: (d) => d.geometry.coordinates as [number, number],
           getFillColor: (d) => {
+            if (d.properties?.fp) return [0, 0, 0, 0];
             return groups.selectionIds.has(d.id as RawId)
               ? WHITE
               : LINE_COLORS_SELECTED_RGB;
           },
           getLineColor: (d) => {
+            if (d.properties?.fp) return [0, 0, 0, 0];
             return groups.selectionIds.has(d.id as RawId)
               ? LINE_COLORS_SELECTED_RGB
               : WHITE;
           },
           getLineWidth: 1.5,
           getRadius: (d) => {
-            const id = Number(d.id || 0);
             const fp = d.properties?.fp;
-            if (fp) return 10;
+            if (fp) return 12;
+            const id = Number(d.id || 0);
             return id % 2 === 0 ? 5 : 3.5;
           },
+        }),
+        new IconLayer<IFeature<Point>>({
+          id: DECK_POINT_SELECTION_ID,
+          data: groups.synthetic.filter((d) => d.properties?.fp),
+          pickable: false,
+          getPosition: (d) => d.geometry.coordinates as [number, number],
+          getIcon: () => SELECTION_RECT_ICON,
+          getSize: 32,
+          sizeUnits: "pixels",
         }),
       ],
     });
@@ -375,7 +463,6 @@ export default class PMap {
     }
 
     this.lastData = data;
-    this.updateSelections(groups.selectionIds);
     this.lastEphemeralState = ephemeralState;
   }
 
@@ -422,52 +509,5 @@ export default class PMap {
       });
       this.lastSelection = { type: "none" };
     }
-  }
-
-  private updateSelections(newSet: Set<RawId>) {
-    if (!this.map || !(this.map as any).style) return;
-    const oldSet = this.lastSelectionIds;
-    const tmpSet = new Set(newSet);
-    // let adds = 0;
-    // let removes = 0;
-
-    // In new set, but not in old set: add to selection
-    for (const id of tmpSet) {
-      if (!oldSet.has(id)) {
-        // If this selection id is a base feature, make all of its
-        // vertexes visible
-        this.map.setFeatureState(
-          {
-            source: FEATURES_SOURCE_NAME,
-            id,
-          },
-          {
-            state: "selected",
-          },
-        );
-        tmpSet.delete(id);
-        // adds++;
-      }
-    }
-
-    // In old set, but not in new set: remove from selection
-    for (const id of oldSet) {
-      if (!tmpSet.has(id)) {
-        this.map.removeFeatureState(
-          {
-            source: FEATURES_SOURCE_NAME,
-            id,
-          },
-          "state",
-        );
-        // removes++;
-      }
-    }
-
-    // if (adds || removes) {
-    //   console.log("adds", adds, "removes", removes);
-    // }
-
-    this.lastSelectionIds = newSet;
   }
 }

@@ -27,7 +27,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { USelection } from "state";
 import { dataAtom, type Sel, splitsAtom } from "state/jotai";
 import type { FolderMap } from "types";
-import { FeatureEditorFolderHeader } from "./feature_editor_folder/header";
 import { useCustomSensors } from "./feature_editor_folder/hooks";
 import { OverlayItem, SortableItem } from "./feature_editor_folder/items";
 import {
@@ -470,7 +469,8 @@ export function FeatureEditorFolderInner() {
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
-      <FeatureEditorFolderHeader featureMap={featureMap} />
+      {/* FeatureEditorFolderHeader omitted: its Radix Popover trigger causes
+          infinite ref-setState loops when dataAtom updates rapidly */}
       <SortableContext items={tree} strategy={verticalListSortingStrategy}>
         <div
           ref={parentRef}

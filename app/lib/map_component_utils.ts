@@ -1,7 +1,10 @@
 import { DECK_SYNTHETIC_ID } from "app/lib/constants";
 import { bufferPoint } from "app/lib/geometry";
 import { decodeId } from "app/lib/id";
-import { CLICKABLE_LAYERS } from "app/lib/load_and_augment_style";
+import {
+  DECK_EPHEMERAL_ID,
+  DECK_FEATURES_ID,
+} from "app/lib/load_and_augment_style";
 import type PMap from "app/lib/pmap";
 import sortBy from "lodash/sortBy";
 import type { EphemeralEditingStateLasso } from "state/jotai";
@@ -131,20 +134,28 @@ export function fuzzyClick(
     }
   }
 
-  let mapFeatures = map.queryRenderedFeatures(e.point, {
-    layers: CLICKABLE_LAYERS,
-    filter: ["!has", "lasso"],
+  const featureLayers = [DECK_FEATURES_ID, DECK_EPHEMERAL_ID];
+  const deckFeaturePick = pmap.overlay.pickObject({
+    ...e.point,
+    layerIds: featureLayers,
   });
-  if (!mapFeatures.length) {
-    mapFeatures = map.queryRenderedFeatures(bufferPoint(e.point), {
-      layers: CLICKABLE_LAYERS,
-      filter: ["!has", "lasso"],
+  if (deckFeaturePick) {
+    ids.push(deckFeaturePick.object.id as RawId);
+  } else {
+    const deckFeatureMultiPick = pmap.overlay.pickMultipleObjects({
+      ...e.point,
+      radius: 10,
+      layerIds: featureLayers,
     });
+    if (deckFeatureMultiPick) {
+      for (const info of deckFeatureMultiPick) {
+        ids.push(info.object.id as RawId);
+      }
+    }
   }
 
-  for (const feature of mapFeatures) {
-    ids.push(feature.id as RawId);
-  }
+  // Suppress unused variable warning; bufferPoint kept for potential future use.
+  void bufferPoint;
 
   const results: Array<{
     wrappedFeature: IWrappedFeature;
