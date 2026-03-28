@@ -7,7 +7,7 @@ import { useHandlers } from "app/lib/handlers/index";
 import { CLICKABLE_LAYERS } from "app/lib/load_and_augment_style";
 import { wrappedFeaturesFromMapFeatures } from "app/lib/map_component_utils";
 import type { PMapHandlers } from "app/lib/pmap";
-import PMap from "app/lib/pmap";
+import PMap, { DECK_PIN_LAYER_ID } from "app/lib/pmap";
 import clsx from "clsx";
 import { captureException } from "integrations/errors";
 import throttle from "lodash/throttle";
@@ -39,7 +39,8 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useClipboard } from "app/hooks/use_clipboard";
 import { keybindingOptions } from "app/hooks/use_map_keybindings";
 import { DECK_SYNTHETIC_ID } from "app/lib/constants";
-import { newFeatureId } from "app/lib/id";
+import { decodeId, newFeatureId } from "app/lib/id";
+import { UIDMap } from "app/lib/id_mapper";
 import { usePersistence } from "app/lib/persistence/context";
 import { fMoment } from "app/lib/persistence/moment";
 import { useHotkeys } from "integrations/hotkeys";
@@ -213,6 +214,8 @@ export const MapComponent = memo(function MapComponent({
     [map, folderMap, symbolization, data, layerConfigs, ephemeralState, label],
   );
 
+  const idMap = rep.idMap;
+
   const throttledMovePointer = useMemo(() => {
     function fastMovePointer(point: mapboxgl.Point) {
       if (!map) return;
@@ -224,7 +227,20 @@ export const MapComponent = memo(function MapComponent({
           ...point,
           layerIds: [DECK_SYNTHETIC_ID],
         });
-        setCursor(syntheticUnderCursor || features.length ? "move" : "");
+        let selectedPinUnderCursor = false;
+        if (!syntheticUnderCursor && selection.type === "single") {
+          const pinPick = map.overlay.pickObject({
+            ...point,
+            layerIds: [DECK_PIN_LAYER_ID],
+          });
+          if (pinPick?.object) {
+            const rawId = pinPick.object.id as RawId;
+            const decoded = decodeId(rawId);
+            const uuid = UIDMap.getUUID(idMap, decoded.featureId);
+            selectedPinUnderCursor = uuid === selection.id;
+          }
+        }
+        setCursor(syntheticUnderCursor || selectedPinUnderCursor || features.length ? "move" : "");
       } catch (_e) {
         // Deck can throw here if it's just been initialized
         // or uninitialized.
@@ -232,9 +248,7 @@ export const MapComponent = memo(function MapComponent({
       }
     }
     return fastMovePointer;
-  }, [map, setCursor]);
-
-  const idMap = rep.idMap;
+  }, [map, setCursor, selection, idMap]);
 
   const handlerContext: HandlerContext = {
     flatbushInstance,

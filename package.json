@@ -34,6 +34,8 @@
     "@dnd-kit/modifiers": "^6.0.1",
     "@dnd-kit/sortable": "^7.0.2",
     "@dnd-kit/utilities": "^3.2.2",
+    "@fortawesome/fontawesome-svg-core": "^7.2.0",
+    "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@headlessui/react": "^2.2.9",
     "@lezer/highlight": "^1.2.3",
     "@placemarkio/check-geojson": "0.1.14",

@@ -46,6 +46,7 @@ export function useNoneHandlers({
   const endSnapshot = useEndSnapshot();
   const startSnapshot = useStartSnapshot();
   const lastPoint = useRef<mapboxgl.LngLat | null>(null);
+  const dragOffset = useRef<[number, number]>([0, 0]);
   const spaceHeld = useSpaceHeld();
   const altHeld = useAltHeld();
 
@@ -160,12 +161,36 @@ export function useNoneHandlers({
             void startSnapshot(wrappedFeature);
             dragTargetRef.current = id;
             setSelection(USelection.single(wrappedFeature.id));
+          } else if (
+            selection.type === "single" &&
+            selection.id === wrappedFeature.id
+          ) {
+            // Clicked on the body of the already-selected feature (e.g. pin body
+            // above the tip). Drag it by targeting vertex 0, same as the fp point.
+            // Record the offset between cursor and feature position so dragging
+            // maintains the grab point rather than snapping the tip to the cursor.
+            const geom = wrappedFeature.feature.geometry;
+            if (geom?.type === "Point") {
+              const [fLng, fLat] = geom.coordinates as [number, number];
+              dragOffset.current = [
+                e.lngLat.lng - fLng,
+                e.lngLat.lat - fLat,
+              ];
+            } else {
+              dragOffset.current = [0, 0];
+            }
+            void startSnapshot(wrappedFeature);
+            dragTargetRef.current = encodeVertex(
+              UIDMap.getIntID(idMap, selection.id),
+              0,
+            );
           }
           e.preventDefault();
         }
 
         return;
       }
+      dragOffset.current = [0, 0];
       e.preventDefault();
 
       const rawId = feature.object.id as RawId;
@@ -206,6 +231,7 @@ export function useNoneHandlers({
     },
     up: () => {
       dragTargetRef.current = null;
+      dragOffset.current = [0, 0];
       void endSnapshot();
       setCursor(CURSOR_DEFAULT);
       if (selection.type === "single") {
@@ -293,6 +319,11 @@ export function useNoneHandlers({
                 selection.id,
               ) as Pos2;
             }
+
+            nextCoord = [
+              nextCoord[0] - dragOffset.current[0],
+              nextCoord[1] - dragOffset.current[1],
+            ] as Pos2;
 
             const { feature: newFeature, wasRectangle } = ops.setCoordinates({
               feature: feature.feature,

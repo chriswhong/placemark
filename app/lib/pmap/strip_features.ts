@@ -49,7 +49,11 @@ export function getKeepProperties({
 }) {
   // Always keep simplestyle color properties for DeckGL rendering,
   // plus marker-specific display properties.
-  let keepProperties: string[] = [...SIMPLESTYLE_PROPERTIES, "marker-size", "name"];
+  let keepProperties: string[] = [
+    ...SIMPLESTYLE_PROPERTIES,
+    "marker-size", "name", "icon", "icon-color",
+    "marker-type", "pin-body-color", "pin-inner-color", "pin-size",
+  ];
   if (previewProperty) {
     keepProperties.push(previewProperty);
   }
