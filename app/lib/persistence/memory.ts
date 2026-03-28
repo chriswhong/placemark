@@ -47,6 +47,11 @@ export class MemPersistence implements IPersistence {
   constructor(idMap: IDMap, store: Store) {
     this.idMap = idMap;
     this.store = store;
+    // DEV: seed idMap from any features already in the store (restored from localStorage)
+    const existing = store.get(dataAtom);
+    for (const id of existing.featureMap.keys()) {
+      UIDMap.pushUUID(idMap, id);
+    }
   }
   putPresence = async () => {};
 
@@ -79,7 +84,7 @@ export class MemPersistence implements IPersistence {
       this.deleteLayerConfigsInner(moment.deleteLayerConfigs, layerConfigMap),
     );
 
-    this.store.set(dataAtom, {
+    const nextData: Data = {
       selection: ctx.selection,
       featureMap: new Map(
         Array.from(ctx.featureMap).sort((a, b) => {
@@ -91,7 +96,19 @@ export class MemPersistence implements IPersistence {
           return sortAts(a[1], b[1]);
         }),
       ),
-    });
+    };
+    this.store.set(dataAtom, nextData);
+
+    // DEV: persist to localStorage so features survive hot-reloads
+    try {
+      localStorage.setItem(
+        "placemark_dev_data",
+        JSON.stringify({
+          features: Array.from(nextData.featureMap.entries()),
+          folders: Array.from(nextData.folderMap.entries()),
+        }),
+      );
+    } catch (_) {}
 
     if (moment.putLayerConfigs?.length || moment.deleteLayerConfigs?.length) {
       this.store.set(

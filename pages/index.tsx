@@ -11,9 +11,23 @@ import { MemPersistence } from "app/lib/persistence/memory";
 import { createStore, Provider } from "jotai";
 import { Tooltip as T } from "radix-ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { dataAtom } from "state/jotai";
 
 const queryClient = new QueryClient();
 const store = createStore();
+
+// DEV: restore features from localStorage so they survive hot-reloads
+try {
+  const saved = localStorage.getItem("placemark_dev_data");
+  if (saved) {
+    const { features, folders } = JSON.parse(saved);
+    store.set(dataAtom, {
+      featureMap: new Map(features),
+      folderMap: new Map(folders),
+      selection: { type: "none" },
+    });
+  }
+} catch (_) {}
 
 function App() {
   const idMap = useRef(UIDMap.empty());
