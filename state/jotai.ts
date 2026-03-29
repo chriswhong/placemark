@@ -94,6 +94,7 @@ export const memoryMetaAtom = atom<Omit<PersistenceMetadataMemory, "type">>({
   symbolization: SYMBOLIZATION_NONE,
   label: null,
   layer: null,
+  bounds: null,
 });
 
 export const searchHistoryAtom = atom<string[]>([]);

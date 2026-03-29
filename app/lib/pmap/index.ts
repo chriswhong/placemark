@@ -218,6 +218,7 @@ export default class PMap {
     previewProperty,
     symbolization,
     idMap,
+    initialBounds,
     controlsCorner = "bottom-left",
   }: {
     element: HTMLDivElement;
@@ -226,11 +227,12 @@ export default class PMap {
     symbolization: ISymbolization;
     previewProperty: PreviewProperty;
     idMap: IDMap;
+    initialBounds?: [[number, number], [number, number]] | null;
     controlsCorner?: Parameters<mapboxgl.Map["addControl"]>[1];
   }) {
     this.idMap = idMap;
     const positionOptions = {
-      bounds: DEFAULT_MAP_BOUNDS as mapboxgl.LngLatBoundsLike,
+      bounds: (initialBounds ?? DEFAULT_MAP_BOUNDS) as mapboxgl.LngLatBoundsLike,
     };
 
     const map = new mapboxgl.Map({

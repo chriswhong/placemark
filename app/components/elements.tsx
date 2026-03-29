@@ -260,15 +260,7 @@ export const TContent = classed(Tooltip.Content)(
       "max-w-md": size === "sm",
       "w-64": size === "md",
     },
-    `px-2 py-1 rounded
-  z-50
-  text-sm
-  border
-  shadow-sm
-  text-gray-700          dark:text-white
-  bg-white               dark:bg-gray-900
-  border-gray-200        dark:border-gray-600
-  `,
+    `px-2 py-1 rounded z-50 text-[10px] shadow-sm text-white bg-gray-900`,
   ],
 );
 
@@ -317,9 +309,7 @@ export const StyledPopoverArrow = () => (
 );
 
 export const StyledTooltipArrow = () => (
-  <Tooltip.Arrow offset={5} width={11} height={5} className={arrowLike} asChild>
-    {ArrowSVG}
-  </Tooltip.Arrow>
+  <Tooltip.Arrow className="fill-gray-900" />
 );
 
 export const StyledPopoverContent = classed(Popover.Content)(

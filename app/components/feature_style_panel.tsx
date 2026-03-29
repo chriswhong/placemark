@@ -16,6 +16,7 @@ import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { HexColorPicker, HexColorInput } from "react-colorful";
 import { selectedFeaturesAtom } from "state/jotai";
 import type { IWrappedFeature } from "types";
+import { GeometryIcon } from "./panels/feature_editor/feature_editor_folder/items";
 import { ColorPopover } from "./color_popover";
 import { inputClass } from "./elements";
 
@@ -116,54 +117,50 @@ function FeatureStylePanelInner({
     [transact],
   );
 
+  const geometryType = wrappedFeature.feature.geometry?.type;
+  const displayType = geometryType === "Point" || geometryType === "MultiPoint" ? "Point"
+    : geometryType === "LineString" || geometryType === "MultiLineString" ? "Line"
+    : geometryType === "Polygon" || geometryType === "MultiPolygon" ? "Polygon"
+    : "Feature";
+
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-3 p-3">
+      {/* Feature header: geometry icon + name input inline */}
+      <div className="flex items-center gap-1.5">
+        <GeometryIcon type={geometryType} />
+        <input
+          type="text"
+          value={localName}
+          onFocus={() => { nameFocused.current = true; }}
+          onBlur={() => { nameFocused.current = false; }}
+          onChange={(e) => {
+            setLocalName(e.target.value);
+            updateProps({ name: e.target.value });
+          }}
+          placeholder='name this feature'
+          className={inputClass({ _size: "sm" }) + " w-full"}
+        />
+      </div>
+
       {/* Details */}
-      <div>
-        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-          Details
-        </div>
-        <div className="flex flex-col gap-2">
-          <div>
-            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
-              Name
-            </label>
-            <input
-              type="text"
-              value={localName}
-              onFocus={() => { nameFocused.current = true; }}
-              onBlur={() => { nameFocused.current = false; }}
-              onChange={(e) => {
-                setLocalName(e.target.value);
-                updateProps({ name: e.target.value });
-              }}
-              placeholder="Add a name…"
-              className={inputClass({ _size: "sm" }) + " w-full"}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
-              Description
-            </label>
-            <textarea
-              value={localDescription}
-              onFocus={() => { descriptionFocused.current = true; }}
-              onBlur={() => { descriptionFocused.current = false; }}
-              onChange={(e) => {
-                setLocalDescription(e.target.value);
-                updateProps({ description: e.target.value });
-              }}
-              placeholder="Add a description…"
-              rows={2}
-              className="block w-full text-sm border rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white border-gray-200 dark:border-gray-700 resize-none focus:outline-none focus:ring-1 focus:ring-purple-500"
-            />
-          </div>
-        </div>
+      <div className="flex flex-col gap-2">
+        <textarea
+          value={localDescription}
+          onFocus={() => { descriptionFocused.current = true; }}
+          onBlur={() => { descriptionFocused.current = false; }}
+          onChange={(e) => {
+            setLocalDescription(e.target.value);
+            updateProps({ description: e.target.value });
+          }}
+          placeholder="add a description"
+          rows={2}
+          className="block w-full text-sm border rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white border-gray-200 dark:border-gray-700 resize-none focus:outline-none focus:ring-1 focus:ring-purple-500"
+        />
       </div>
 
       {/* Style */}
       <div>
-        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
           Style
         </div>
 

@@ -115,7 +115,7 @@ export function buildEmojiAtlas(): {
 
 export const DEFAULT_PIN_BODY_COLOR = "#43538D";
 export const DEFAULT_PIN_INNER_COLOR = "#6B82D6";
-export const DEFAULT_PIN_SIZE = 40; // height in pixels
+export const DEFAULT_PIN_SIZE = 28; // height in pixels
 
 // ---------------------------------------------------------------------------
 // Read marker options from raw GeoJSON properties

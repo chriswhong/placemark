@@ -156,14 +156,27 @@ body.dark .mapboxgl-ctrl-attrib-button {
   background-color: hsla(0, 0%, 0%, 0.5);
 }
 
-.squidmaps-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 dark:bg-gray-100;
-  @apply hover:bg-gray-500 hover:dark:bg-white;
+.squidmaps-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+  background: transparent;
 }
 
-.squidmaps-scrollbar::-webkit-scrollbar {
-  @apply h-3 w-3;
-  @apply bg-gray-100 dark:bg-gray-500;
+.squidmaps-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.squidmaps-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+
+.squidmaps-scrollbar.scrollbar-hovered::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600;
+}
+
+.squidmaps-scrollbar.scrollbar-hovered::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
 }
 
 .group-1:hover .group-1-hover\:opacity-100 {

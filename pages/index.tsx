@@ -1,4 +1,4 @@
-import { SquidmapsPlay } from "app/components/squidmaps_play";
+import { Squidmaps } from "app/components/squidmaps";
 import { MapsListPage } from "app/components/maps_list_page";
 import { StrictMode, Suspense, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -105,7 +105,7 @@ function MapApp({ username, mapSlug }: MapAppProps) {
   return (
     <Provider store={storeRef.current}>
       <PersistenceContext.Provider value={persistenceRef.current}>
-        <SquidmapsPlay
+        <Squidmaps
           username={username}
           mapSlug={mapMeta.slug}
           mapTitle={mapMeta.title}
@@ -210,6 +210,25 @@ function AppRoutes({ currentUser }: { currentUser: CurrentUser }) {
 }
 
 function Root() {
+  useEffect(() => {
+    const onOver = (e: MouseEvent) => {
+      const el = (e.target as Element)?.closest?.(".squidmaps-scrollbar");
+      if (el) el.classList.add("scrollbar-hovered");
+    };
+    const onOut = (e: MouseEvent) => {
+      const el = (e.target as Element)?.closest?.(".squidmaps-scrollbar");
+      if (el && !el.contains(e.relatedTarget as Node)) {
+        el.classList.remove("scrollbar-hovered");
+      }
+    };
+    document.addEventListener("mouseover", onOver);
+    document.addEventListener("mouseout", onOut);
+    return () => {
+      document.removeEventListener("mouseover", onOver);
+      document.removeEventListener("mouseout", onOut);
+    };
+  }, []);
+
   return (
     <Suspense fallback={null}>
       <StrictMode>

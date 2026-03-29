@@ -36,7 +36,7 @@ import type { FlattenedFeature, FlattenedFolder, FlattenedItem } from "./math";
 const visibilityToggleClass =
   "hidden opacity-30 hover:opacity-100 group-hover:inline-block pr-2";
 
-function GeometryIcon({ type }: { type: string | undefined }) {
+export function GeometryIcon({ type }: { type: string | undefined }) {
   const cls = "shrink-0 opacity-40 mr-1.5";
   switch (type) {
     case "Point":

@@ -175,6 +175,7 @@ export const MapComponent = memo(function MapComponent({
       symbolization: symbolization || SYMBOLIZATION_NONE,
       previewProperty: label,
       idMap: idMap,
+      initialBounds: meta.bounds,
     });
 
     setMap(mapRef.current);
@@ -322,7 +323,12 @@ export const MapComponent = memo(function MapComponent({
       // if (log) console.log(`${mode.mode} double`);
       HANDLERS[mode.mode].double(e);
     },
-    onMoveEnd() {},
+    onMoveEnd(e: mapboxgl.MapboxEvent) {
+      const bounds = e.target.getBounds()?.toArray() as [[number, number], [number, number]] | undefined;
+      if (bounds) {
+        updateMeta({ bounds });
+      }
+    },
     onMove: throttle((e: mapboxgl.MapboxEvent) => {
       const center = e.target.getCenter().toArray();
       const bounds = e.target.getBounds()?.toArray();

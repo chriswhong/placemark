@@ -57,7 +57,7 @@ export function MapTitleBar({ username, mapSlug, initialTitle }: MapTitleBarProp
   }
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
+    <div className="min-w-0">
       {editing ? (
         <input
           ref={inputRef}
@@ -65,21 +65,18 @@ export function MapTitleBar({ username, mapSlug, initialTitle }: MapTitleBarProp
           onChange={(e) => setTitle(e.target.value)}
           onBlur={save}
           onKeyDown={onKeyDown}
-          className="text-sm font-medium bg-white border border-purple-400 rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-purple-300 min-w-0 w-48"
+          className="text-sm font-bold bg-white border border-purple-400 rounded px-1 py-0.5 outline-none focus:ring-2 focus:ring-purple-300 w-full"
           autoFocus
         />
       ) : (
         <button
           onClick={startEditing}
           title="Click to rename"
-          className="text-sm font-medium text-gray-700 hover:text-gray-900 truncate max-w-xs"
+          className="text-sm font-bold text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white truncate w-full text-left"
         >
           {saving ? <span className="opacity-50">{title}</span> : title}
         </button>
       )}
-      <span className="text-xs text-gray-400 shrink-0">
-        /@{username}/{mapSlug}
-      </span>
     </div>
   );
 }

@@ -9,6 +9,7 @@ export type PersistenceMetadataMemory = {
   symbolization: ISymbolization;
   label: string | null;
   layer: any;
+  bounds: [[number, number], [number, number]] | null;
 };
 
 type PersistenceMetadata = PersistenceMetadataMemory;
@@ -26,6 +27,7 @@ const EditWrappedFeatureCollection = z.object({
   access: z.any(),
   symbolization: z.any(),
   wrappedFeatureCollectionFolderId: z.string().uuid().nullable().optional(),
+  bounds: z.tuple([z.tuple([z.number(), z.number()]), z.tuple([z.number(), z.number()])]).nullable().optional(),
 });
 
 export type MetaUpdatesInput = Partial<
