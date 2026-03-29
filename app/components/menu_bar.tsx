@@ -1,34 +1,44 @@
 import {
-  GitHubLogoIcon,
   KeyboardIcon,
   ReaderIcon,
 } from "@radix-ui/react-icons";
 import { FileInfo } from "app/components/file_info";
+import { MapTitleBar } from "app/components/map_title_bar";
 import { useSetAtom } from "jotai";
 import { DropdownMenu as DD } from "radix-ui";
 import { memo } from "react";
 import { dialogAtom } from "state/jotai";
-import { Button, DDContent, PlacemarkIcon, StyledItem } from "./elements";
-import { MenuBarDropdown } from "./menu_bar/menu_bar_dropdown";
+import { Button, DDContent, StyledItem } from "./elements";
 
-export const MenuBarPlay = memo(function MenuBar() {
+interface MenuBarPlayProps {
+  username: string;
+  mapSlug: string;
+  mapTitle: string;
+}
+
+export const MenuBarPlay = memo(function MenuBar({
+  username,
+  mapSlug,
+  mapTitle,
+}: MenuBarPlayProps) {
   return (
-    <div className="flex justify-between h-12 pr-2 text-black dark:text-white">
-      <div className="flex items-center">
-        <span
-          className="py-1 pl-1 pr-2
-          text-gray-500
-          inline-flex gap-x-2 items-center"
-          title="Home"
+    <div className="flex justify-between h-12 pr-2 text-black dark:text-white border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-x-3 px-3">
+        <a
+          href={`/@${username}`}
+          className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          title="All maps"
         >
-          Left
-        </span>
-        <FileInfo />
+          ← Maps
+        </a>
+        <MapTitleBar
+          username={username}
+          mapSlug={mapSlug}
+          initialTitle={mapTitle}
+        />
       </div>
       <div className="flex items-center gap-x-2">
-        {/* <MenuBarDropdown /> */}
-        Right
-   
+        <FileInfo />
       </div>
     </div>
   );

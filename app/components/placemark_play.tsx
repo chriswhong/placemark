@@ -101,7 +101,13 @@ function UrlAPI() {
   return null;
 }
 
-export function PlacemarkPlay() {
+interface PlacemarkPlayProps {
+  username: string;
+  mapSlug: string;
+  mapTitle: string;
+}
+
+export function PlacemarkPlay({ username, mapSlug, mapTitle }: PlacemarkPlayProps) {
   const [map, setMap] = useState<PMap | null>(null);
 
   return (
@@ -120,7 +126,7 @@ export function PlacemarkPlay() {
               );
             }}
           >
-            <MenuBarPlay />
+            <MenuBarPlay username={username} mapSlug={mapSlug} mapTitle={mapTitle} />
           </ErrorBoundary>
           <div className="flex-auto relative">
             <MapComponent setMap={setMap} />

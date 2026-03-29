@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -n frontend,backend -c cyan,yellow \"vite\" \"cd backend && npm run dev\"",
+    "dev:frontend": "vite",
     "build": "vite build",
     "lint": "biome check",
     "test": "vitest run",
@@ -142,6 +143,7 @@
     "@types/topojson-client": "^3.1.5",
     "@types/topojson-server": "^3.0.4",
     "@vitejs/plugin-react": "^5.1.2",
+    "concurrently": "^9.2.1",
     "deep-freeze": "^0.0.1",
     "fastestsmallesttextencoderdecoder": "^1.0.22",
     "jest-diff": "^30.2.0",
