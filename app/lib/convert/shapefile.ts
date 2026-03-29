@@ -1,5 +1,5 @@
 import type { ConvertError } from "app/lib/errors";
-import { type PlacemarkError, parseOrError } from "app/lib/errors";
+import { type AppError, parseOrError } from "app/lib/errors";
 import type { AsyncZippable } from "fflate";
 import groupBy from "lodash/groupBy";
 import { EitherAsync } from "purify-ts/EitherAsync";
@@ -201,7 +201,7 @@ class CShapefile implements FileType {
     );
   }
   forwardBinary(file: ArrayBuffer, _options?: ImportOptions) {
-    return EitherAsync<PlacemarkError, ConvertResult>(
+    return EitherAsync<AppError, ConvertResult>(
       async function forwardShapefile({ fromPromise }) {
         const unzipped = await unzip(file);
         const fileNames = Object.keys(unzipped);

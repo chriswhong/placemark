@@ -187,7 +187,7 @@ function FeatureEditorPropertiesRaw({
 
   return (
     <div
-      className="overflow-y-auto placemark-scrollbar"
+      className="overflow-y-auto squidmaps-scrollbar"
       data-focus-scope
       onKeyDown={onArrow}
     >

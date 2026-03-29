@@ -1,7 +1,7 @@
 import { Converter } from "app/components/converter";
 import { formatTitle } from "app/lib/utils";
 
-const PlacemarkConverter = () => {
+const SquidmapsConverter = () => {
   return (
     <>
       <title>{formatTitle("Free map file converter")}</title>
@@ -24,4 +24,4 @@ const PlacemarkConverter = () => {
   );
 };
 
-export default PlacemarkConverter;
+export default SquidmapsConverter;

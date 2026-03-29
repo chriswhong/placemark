@@ -26,7 +26,7 @@ import StarterKit from "@tiptap/starter-kit";
 import * as E from "app/components/elements";
 import useResettable from "app/hooks/use_resettable";
 import { asHTML, castExplicit, ExplicitCast } from "app/lib/cast";
-import { placemarkTheme } from "app/lib/codemirror_theme";
+import { squidmapsTheme } from "app/lib/codemirror_theme";
 import { parseOrError } from "app/lib/errors";
 import { truncate } from "app/lib/utils";
 import classed from "classed-components";
@@ -104,7 +104,7 @@ function SimpleText({
             keymap.of([...defaultKeymap, ...historyKeymap]),
             history(),
             drawSelection(),
-            placemarkTheme,
+            squidmapsTheme,
             lineNumbers(),
             json(),
             onChanges,
@@ -863,7 +863,7 @@ function TextEditor({
           <div
             className="overflow-y-auto divide-y
             divide-gray-200 dark:divide-gray-900
-            placemark-scrollbar w-full text-xs rounded-md"
+            squidmaps-scrollbar w-full text-xs rounded-md"
             style={{
               maxHeight: 100,
             }}

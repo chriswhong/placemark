@@ -1,9 +1,9 @@
 import { EitherAsync } from "purify-ts/EitherAsync";
-import type { PlacemarkError } from "./errors";
+import type { AppError } from "./errors";
 
 export default function readAsText(
   file: ArrayBuffer,
-): EitherAsync<PlacemarkError, string> {
+): EitherAsync<AppError, string> {
   return EitherAsync(function readAsTextInner() {
     return Promise.resolve(new TextDecoder().decode(file));
   });

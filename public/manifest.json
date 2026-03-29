@@ -1,6 +1,6 @@
 {
-  "short_name": "Placemark",
-  "name": "Placemark: map data editor",
+  "short_name": "Squidmaps",
+  "name": "Squidmaps: map data editor",
   "icons": [
     {
       "src": "/favicon.png",

@@ -1,6 +1,6 @@
 import type * as React from "react";
 
-function SvgPlacemark(props: React.SVGProps<SVGSVGElement>) {
+function SvgSquidmaps(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 229 35"
@@ -16,4 +16,4 @@ function SvgPlacemark(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-export default SvgPlacemark;
+export default SvgSquidmaps;

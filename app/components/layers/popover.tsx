@@ -812,7 +812,7 @@ export function LayersPopover() {
         </div>
       </div>
       <div
-        className="placemark-scrollbar overflow-y-auto"
+        className="squidmaps-scrollbar overflow-y-auto"
         style={{
           maxHeight: 300,
         }}

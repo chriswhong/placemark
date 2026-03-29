@@ -17,7 +17,7 @@ import {
 import { describe, expect, it, test } from "vitest";
 
 test("formatTitle", () => {
-  expect(formatTitle("X")).toMatchInlineSnapshot(`"X | Placemark"`);
+  expect(formatTitle("X")).toMatchInlineSnapshot(`"X | Squidmaps"`);
 });
 
 test("shallowArrayEqual", () => {

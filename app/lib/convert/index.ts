@@ -1,5 +1,5 @@
 import { GEOJSON_TYPES } from "app/lib/constants";
-import { ConvertError, PlacemarkError, parseOrError } from "app/lib/errors";
+import { ConvertError, AppError, parseOrError } from "app/lib/errors";
 import type { ProxyMarked } from "comlink";
 import isPlainObject from "lodash/isPlainObject";
 import { Left } from "purify-ts/Either";
@@ -222,12 +222,12 @@ export interface FileType {
     file: ArrayBuffer,
     options: ImportOptions,
     callback: ProgressCb,
-  ) => EitherAsync<Error | PlacemarkError, ConvertResult>;
+  ) => EitherAsync<Error | AppError, ConvertResult>;
   forwardString?: (
     file: string,
     options: ImportOptions,
     callback: ProgressCb,
-  ) => EitherAsync<Error | PlacemarkError, ConvertResult>;
+  ) => EitherAsync<Error | AppError, ConvertResult>;
   back?: (
     inputs: {
       geojson: FeatureCollection;
@@ -235,7 +235,7 @@ export interface FileType {
       folderMap: FolderMap;
     },
     options: ExportOptions,
-  ) => EitherAsync<PlacemarkError, ExportResult>;
+  ) => EitherAsync<AppError, ExportResult>;
 }
 
 export const FILE_TYPES = [
@@ -267,19 +267,19 @@ function assertIsObject(obj: JsonValue): obj is JsonObject {
 async function detectJson(file: File) {
   // performance here is rough:
   // we're parsing the full json object.
-  const res = await EitherAsync<PlacemarkError, ImportOptions>(
+  const res = await EitherAsync<AppError, ImportOptions>(
     async function detectJsonInner({ liftEither, throwE }) {
       const text = await file.text();
       const obj = await liftEither(parseOrError(text));
       if (!assertIsObject(obj)) {
-        return throwE(new PlacemarkError("Could not determine JSON type"));
+        return throwE(new AppError("Could not determine JSON type"));
       }
       if (obj.type === "Topology") {
         return { ...DEFAULT_IMPORT_OPTIONS, type: TopoJSON.id };
       } else if (typeof obj.type === "string" && GEOJSON_TYPES.has(obj.type)) {
         return { ...DEFAULT_IMPORT_OPTIONS, type: GeoJSON.id };
       }
-      return throwE(new PlacemarkError("Could not determine JSON type"));
+      return throwE(new AppError("Could not determine JSON type"));
     },
   ).run();
 
@@ -293,7 +293,7 @@ export function findType(typeStr: string) {
 }
 
 export async function detectType(file: File) {
-  return await EitherAsync<PlacemarkError, ImportOptions>(
+  return await EitherAsync<AppError, ImportOptions>(
     async ({ throwE, fromPromise }) => {
       const { name } = file;
       const ext = getExtension(name);
@@ -315,7 +315,7 @@ export async function detectType(file: File) {
         }
       }
 
-      return throwE(new PlacemarkError("Could not detect file type"));
+      return throwE(new AppError("Could not detect file type"));
     },
   ).run();
 }

@@ -59,7 +59,7 @@ export function SelectFileType({
             target="_blank"
             className="focus:underline hover:underline"
             rel="noreferrer"
-            href="https://www.placemark.io/documentation-index"
+            href="https://www.squidmaps.io/documentation-index"
           >
             <QuestionMarkCircledIcon className="mr-1 inline-block" />
             Help

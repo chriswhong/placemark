@@ -62,7 +62,7 @@ function HelpDot() {
         </StyledItem>
         <StyledItem
           onSelect={() => {
-            window.open("https://www.placemark.io/documentation-index");
+            window.open("https://www.squidmaps.io/documentation-index");
           }}
         >
           <ReaderIcon /> Documentation

@@ -24,7 +24,7 @@ function underline(color: string) {
 }
 
 /// The editor theme styles for One Dark.
-const placemarkBaseTheme = EditorView.theme(
+const squidmapsBaseTheme = EditorView.theme(
   {
     ".cm-lintRange-error": { backgroundImage: underline("#DC2626") },
     "&": {
@@ -110,7 +110,7 @@ const placemarkBaseTheme = EditorView.theme(
 );
 
 /// The highlighting style for code in the One Dark theme.
-const placemarkHighlightStyle = HighlightStyle.define([
+const squidmapsHighlightStyle = HighlightStyle.define([
   {
     tag: [
       t.keyword,
@@ -169,7 +169,7 @@ const placemarkHighlightStyle = HighlightStyle.define([
 
 /// Extension to enable the One Dark theme (both the editor theme and
 /// the highlight style).
-export const placemarkTheme: Extension = [
-  placemarkBaseTheme,
-  syntaxHighlighting(placemarkHighlightStyle),
+export const squidmapsTheme: Extension = [
+  squidmapsBaseTheme,
+  syntaxHighlighting(squidmapsHighlightStyle),
 ];

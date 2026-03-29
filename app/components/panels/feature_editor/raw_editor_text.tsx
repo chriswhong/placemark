@@ -4,7 +4,7 @@ import { linter } from "@codemirror/lint";
 import { EditorState, Transaction } from "@codemirror/state";
 import type { ViewUpdate } from "@codemirror/view";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
-import { placemarkTheme } from "app/lib/codemirror_theme";
+import { squidmapsTheme } from "app/lib/codemirror_theme";
 import { usePersistence } from "app/lib/persistence/context";
 import { lib } from "app/lib/worker";
 import { captureException } from "integrations/errors";
@@ -81,7 +81,7 @@ export const FeatureText = memo(function FeatureText({
             keymap.of([...defaultKeymap, ...historyKeymap]),
             history(),
             drawSelection(),
-            placemarkTheme,
+            squidmapsTheme,
             json(),
             checker,
             onChanges,

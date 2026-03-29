@@ -10,7 +10,7 @@ export function RouteHelpDialog() {
         <p>
           Routing is a beta feature! Please leave feedback and consider{" "}
           <a
-            href="https://github.com/placemark/placemark"
+            href="https://github.com/squidmaps/squidmaps"
             className={styledInlineA}
           >
             helping out with development

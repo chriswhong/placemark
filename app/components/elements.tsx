@@ -36,7 +36,7 @@ export function Hint({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function PlacemarkIcon({ className }: React.HTMLAttributes<SVGElement>) {
+export function SquidmapsIcon({ className }: React.HTMLAttributes<SVGElement>) {
   const circleAttrs = {
     r: "17.5",
     stroke: "currentColor",
@@ -211,7 +211,7 @@ export const CapsLabel = classed.label(
 );
 
 const overlayClasses =
-  "fixed inset-0 bg-black/20 dark:bg-white/20 z-50 placemark-fadein";
+  "fixed inset-0 bg-black/20 dark:bg-white/20 z-50 squidmaps-fadein";
 
 export const StyledDialogOverlay = classed(Dialog.Overlay)(overlayClasses);
 
@@ -230,7 +230,7 @@ const styledDialogContent = ({ size = "sm" }: { size?: B3Size }) =>
       shadow-md dark:shadow-none dark:border dark:border-black
       sm:rounded sm:align-middle sm:max-w-lg
       left-2/4 top-2/4 -translate-x-1/2 -translate-y-1/2
-      overflow-y-auto placemark-scrollbar
+      overflow-y-auto squidmaps-scrollbar
       z-50
       `,
   );
@@ -339,7 +339,7 @@ export const StyledPopoverContent = classed(Popover.Content)(
       },
       flush === "yes" ? "" : "p-3",
       `shadow-lg
-      placemark-appear
+      squidmaps-appear
       z-50
       bg-white dark:bg-gray-900
       dark:text-white

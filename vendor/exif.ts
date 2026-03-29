@@ -6,7 +6,7 @@
 import { Tags, StringValues } from "./exif_constants";
 import type { FeatureCollection } from "types";
 // import { IMAGE_SYM } from "lib/constants";
-import { ConvertError, PlacemarkError } from "app/lib/errors";
+import { ConvertError, AppError } from "app/lib/errors";
 import type { Either } from "purify-ts/Either";
 import { Left, Right } from "purify-ts/Either";
 import { EitherAsync } from "purify-ts/EitherAsync";
@@ -23,7 +23,7 @@ type TagObject = {
  */
 export function getImageData(
   file: ArrayBufferLike
-): Either<PlacemarkError, TagObject> {
+): Either<AppError, TagObject> {
   const dataView = new DataView(file);
 
   if (
@@ -31,7 +31,7 @@ export function getImageData(
     dataView.getUint8(0) !== 0xff ||
     dataView.getUint8(1) !== 0xd8
   ) {
-    return Left(new PlacemarkError("Not a valid JPEG"));
+    return Left(new AppError("Not a valid JPEG"));
   }
 
   let offset = 2;
@@ -41,7 +41,7 @@ export function getImageData(
   while (offset < length) {
     if (dataView.getUint8(offset) !== 0xff) {
       return Left(
-        new PlacemarkError(
+        new AppError(
           `Not a valid marker at offset ${offset}, found: ${dataView.getUint8(
             offset
           )}`
@@ -59,11 +59,11 @@ export function getImageData(
       offset += 2 + dataView.getUint16(offset + 2);
     }
   }
-  return Left(new PlacemarkError("Could not find EXIF data"));
+  return Left(new AppError("Could not find EXIF data"));
 }
 
 export function toGeoJSON(arrayBuffer: ArrayBuffer) {
-  return EitherAsync<PlacemarkError, FeatureCollection>(
+  return EitherAsync<AppError, FeatureCollection>(
     async ({ liftEither, throwE }) => {
       const exif = await liftEither(getImageData(arrayBuffer));
 

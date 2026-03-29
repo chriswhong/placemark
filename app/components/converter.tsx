@@ -480,12 +480,12 @@ function Download() {
             Start again
           </button>
           {" · "}
-          <a className="text-purple-500 underline" href="https://placemark.io">
-            🌎 Create maps with Placemark.
+          <a className="text-purple-500 underline" href="https://squidmaps.io">
+            🌎 Create maps with Squidmaps.
           </a>
           {" · "}
           <a
-            href="mailto:support@placemark.io"
+            href="mailto:support@squidmaps.io"
             className="text-purple-500 underline"
           >
             Feedback
@@ -584,8 +584,8 @@ export function Converter() {
         </div>
         <div>
           A free tool from{" "}
-          <a className="underline" href="https://placemark.io/">
-            Placemark
+          <a className="underline" href="https://squidmaps.io/">
+            Squidmaps
           </a>
         </div>
       </div>

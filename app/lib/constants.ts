@@ -32,15 +32,15 @@ export const LINE_COLORS_SELECTED_RGB = hexToArray("#D6409F");
  */
 export const targetSize = [80, 40] as const;
 
-export const SUPPORT_EMAIL = "support@placemark.io";
+export const SUPPORT_EMAIL = "support@squidmaps.io";
 
 export const emptySelection = new Set<RawId>();
 export const CURSOR_DEFAULT = "";
 
 export const MAX_GEOCODER_ROWS = 100;
 
-export const PLACEMARK_ID_PROP = "@id";
-export const PLACEMARK_FOLDER_PROP = "@folder";
+export const SQUIDMAPS_ID_PROP = "@id";
+export const SQUIDMAPS_FOLDER_PROP = "@folder";
 const lengthFactors = {
   // Metric
   millimeters: 1000,

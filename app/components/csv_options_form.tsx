@@ -199,7 +199,7 @@ function StructuredHeaders({ columns }: { columns: Columns }) {
           <br />
           Geocoded files are limited to {MAX_GEOCODER_ROWS} rows. See{" "}
           <a
-            href="https://www.placemark.io/documentation/importing-addresses"
+            href="https://www.squidmaps.io/documentation/importing-addresses"
             target="_blank"
             className={styledInlineA}
             rel="noreferrer"
@@ -258,7 +258,7 @@ function HeaderSelectionsAddresses({
             <br />
             Geocoded files are limited to {MAX_GEOCODER_ROWS} rows. See{" "}
             <a
-              href="https://www.placemark.io/documentation/importing-addresses"
+              href="https://www.squidmaps.io/documentation/importing-addresses"
               target="_blank"
               className={styledInlineA}
               rel="noreferrer"
@@ -300,7 +300,7 @@ function JoinSettings({ columns }: { columns: Columns }) {
           code.
           <br />
           <a
-            href="https://www.placemark.io/documentation/joining-data"
+            href="https://www.squidmaps.io/documentation/joining-data"
             className="underline"
             rel="noreferrer"
             target="_blank"

@@ -102,7 +102,7 @@ export class MemPersistence implements IPersistence {
     // DEV: persist to localStorage so features survive hot-reloads
     try {
       localStorage.setItem(
-        "placemark_dev_data",
+        "squidmaps_dev_data",
         JSON.stringify({
           features: Array.from(nextData.featureMap.entries()),
           folders: Array.from(nextData.folderMap.entries()),

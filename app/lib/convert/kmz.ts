@@ -1,6 +1,6 @@
 import { solveRootItems } from "app/components/panels/feature_editor/feature_editor_folder/math";
 import { KML } from "app/lib/convert/kml";
-import { ConvertError, PlacemarkError } from "app/lib/errors";
+import { ConvertError, AppError } from "app/lib/errors";
 import readAsText from "app/lib/read_as_text";
 import { EitherAsync } from "purify-ts/EitherAsync";
 import type { FeatureCollection, FeatureMap, FolderMap } from "types";
@@ -15,14 +15,14 @@ class CKMZ implements FileType {
   filenames = [] as string[];
   mimes = [] as string[];
   forwardBinary(file: ArrayBuffer, _options: ImportOptions) {
-    return EitherAsync<PlacemarkError, ConvertResult>(
+    return EitherAsync<AppError, ConvertResult>(
       async function forwardKmz({ throwE, liftEither }) {
         const unzipped = await unzip(file);
         const kmlFile = Object.entries(unzipped).find(([filename]) => {
           return getExtension(filename) === ".kml";
         });
         if (!kmlFile) {
-          return throwE(new PlacemarkError("No KML file found within KMZ"));
+          return throwE(new AppError("No KML file found within KMZ"));
         }
         const text = await liftEither(
           await readAsText(kmlFile[1] as unknown as ArrayBuffer),

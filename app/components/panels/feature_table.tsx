@@ -555,7 +555,7 @@ function FeatureTableInner({ data }: { data: Data }) {
       </div>
       <div
         ref={parentRef}
-        className="overflow-auto flex-auto placemark-scrollbar"
+        className="overflow-auto flex-auto squidmaps-scrollbar"
         data-focus-scope
         onKeyUp={onArrow}
       >

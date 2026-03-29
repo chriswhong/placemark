@@ -475,7 +475,7 @@ export function FeatureEditorFolderInner() {
         <div
           ref={parentRef}
           data-keybinding-scope="editor_folder"
-          className="placemark-scrollbar overflow-y-scroll flex-auto group"
+          className="squidmaps-scrollbar overflow-y-scroll flex-auto group"
         >
           <div
             className="relative w-full"

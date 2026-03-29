@@ -1,5 +1,5 @@
 import type { Folder } from "@tmcw/togeojson";
-import type { PlacemarkError } from "app/lib/errors";
+import type { AppError } from "app/lib/errors";
 import { ConvertError, parseOrError } from "app/lib/errors";
 import readAsText from "app/lib/read_as_text";
 import { EitherAsync } from "purify-ts/EitherAsync";
@@ -19,7 +19,7 @@ class CTopoJSON implements FileType {
     });
   }
   forwardString(text: string, _options?: ImportOptions) {
-    return EitherAsync<PlacemarkError, ConvertResult>(
+    return EitherAsync<AppError, ConvertResult>(
       async function forwardTopoJSON({ liftEither, throwE }) {
         const { feature } = await import("topojson-client");
         type Topology = Parameters<typeof feature>[0];
@@ -62,7 +62,7 @@ class CTopoJSON implements FileType {
     );
   }
   back({ geojson }: { geojson: FeatureCollection }) {
-    return EitherAsync<PlacemarkError, ExportResult>(
+    return EitherAsync<AppError, ExportResult>(
       async function backTopoJSON({ throwE }) {
         const { topology } = await import("topojson-server");
         try {

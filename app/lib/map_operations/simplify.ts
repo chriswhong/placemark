@@ -21,7 +21,7 @@ export type SimplifySupportedGeometry =
  mourner.github.io/simplify-js
 
 
- Changes (Placemark)
+ Changes (Squidmaps)
 
  - Port to TypeScript (let to let)
  - Use native GeoJSON points

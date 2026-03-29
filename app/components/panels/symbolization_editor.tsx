@@ -450,7 +450,7 @@ function RampWizard() {
                           style={{
                             maxHeight: 480,
                           }}
-                          className="space-y-2 p-1 overflow-y-auto placemark-scrollbar"
+                          className="space-y-2 p-1 overflow-y-auto squidmaps-scrollbar"
                         >
                           <div className="grid grid-cols-2 gap-x-2">
                             <label className="block">
@@ -974,7 +974,7 @@ function SymbolizationEditor() {
   >(meta.symbolization?.type || "none");
 
   return (
-    <div className="flex-auto overflow-y-auto placemark-scrollbar">
+    <div className="flex-auto overflow-y-auto squidmaps-scrollbar">
       <div className="divide-y divide-gray-200 dark:divide-gray-900 border-gray-200 dark:border-gray-900">
         <div className="p-3 space-y-2">
           <div className="text-sm font-bold dark:text-white">Symbolization</div>

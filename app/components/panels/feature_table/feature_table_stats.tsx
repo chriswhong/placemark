@@ -56,7 +56,7 @@ export function FeatureTableStats({
 
   return (
     <div
-      className="mt-2 rounded p-3 dark:text-white bg-gray-100 dark:bg-gray-900 overflow-y-auto placemark-scrollbar"
+      className="mt-2 rounded p-3 dark:text-white bg-gray-100 dark:bg-gray-900 overflow-y-auto squidmaps-scrollbar"
       style={{
         maxHeight: 420,
       }}
@@ -142,7 +142,7 @@ function StatValuePopover({ stats }: { stats: RetStat }) {
   return (
     <div
       ref={parentRef}
-      className="text-xs overflow-y-auto h-48 placemark-scrollbar"
+      className="text-xs overflow-y-auto h-48 squidmaps-scrollbar"
     >
       <div
         className="w-full relative rounded"

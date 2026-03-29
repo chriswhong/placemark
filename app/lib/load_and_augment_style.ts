@@ -53,7 +53,7 @@ const emptyGeoJSONSource = {
   /**
    * Higher values are worse for performance,
    * lower values will cause rendering artifacts.
-   * See https://github.com/placemark/placemark/pull/92
+   * See https://github.com/squidmaps/squidmaps/pull/92
    */
   buffer: 4,
   tolerance: 0,

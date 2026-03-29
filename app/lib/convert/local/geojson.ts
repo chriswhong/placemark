@@ -1,5 +1,5 @@
 import { rewindFeature } from "@placemarkio/geojson-rewind";
-import { PLACEMARK_FOLDER_PROP, PLACEMARK_ID_PROP } from "app/lib/constants";
+import { SQUIDMAPS_FOLDER_PROP, SQUIDMAPS_ID_PROP } from "app/lib/constants";
 import { addBbox, e6feature } from "app/lib/geometry";
 import cloneDeep from "lodash/cloneDeep";
 import type { FeatureCollection, FeatureMap, IWrappedFeature } from "types";
@@ -22,9 +22,9 @@ function wrappedFeatureToExportable(
     if (!feature.properties) {
       feature.properties = {};
     }
-    feature.properties[PLACEMARK_ID_PROP] = id;
+    feature.properties[SQUIDMAPS_ID_PROP] = id;
     if (folderId) {
-      feature.properties[PLACEMARK_FOLDER_PROP] = folderId;
+      feature.properties[SQUIDMAPS_FOLDER_PROP] = folderId;
     }
   }
 

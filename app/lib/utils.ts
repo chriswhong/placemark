@@ -14,7 +14,7 @@ import type { ZodSafeParseResult, z } from "zod";
  * the style in the future it can be changed in one place.
  */
 export function formatTitle(title: string): string {
-  return `${title} | Placemark`;
+  return `${title} | Squidmaps`;
 }
 
 /**

@@ -13,7 +13,7 @@ export default function FeatureEditorMulti({
         <FeatureEditorPropertiesMulti selectedFeatures={selectedFeatures} />
       </div>
       <div className="flex-auto" />
-      <div className="divide-y divide-gray-200 dark:divide-gray-900 border-t border-gray-200 dark:border-gray-900 overflow-auto placemark-scrollbar">
+      <div className="divide-y divide-gray-200 dark:divide-gray-900 border-t border-gray-200 dark:border-gray-900 overflow-auto squidmaps-scrollbar">
         <FeatureEditorStyleMulti
           wrappedFeatures={selectedFeatures}
           key="style-editor-multi"

@@ -21,10 +21,10 @@ export function FeatureEditorInner({
   const [vertexId] = vertices;
   return (
     <>
-      <div className="flex-auto overflow-y-auto placemark-scrollbar">
+      <div className="flex-auto overflow-y-auto squidmaps-scrollbar">
         <FeatureEditorProperties wrappedFeature={selectedFeature} />
       </div>
-      <div className="divide-y divide-gray-200 dark:divide-gray-900 border-t border-gray-200 dark:border-gray-900 overflow-auto placemark-scrollbar">
+      <div className="divide-y divide-gray-200 dark:divide-gray-900 border-t border-gray-200 dark:border-gray-900 overflow-auto squidmaps-scrollbar">
         {vertexId !== undefined ? (
           <FeatureEditorVertex
             wrappedFeature={selectedFeature}

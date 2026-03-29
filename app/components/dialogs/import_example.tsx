@@ -25,7 +25,7 @@ export function ImportExampleDialog({ onClose }: { onClose: () => void }) {
   const { data: exampleList } = useSuspenseQuery({
     queryKey: ["import-examples"],
     queryFn: () =>
-      fetch("https://data-library.placemark.io/")
+      fetch("https://data-library.squidmaps.io/")
         .then((r) => r.json())
         .then((json) => {
           return ExampleList.parse(json);
@@ -39,7 +39,7 @@ export function ImportExampleDialog({ onClose }: { onClose: () => void }) {
         The data library includes commonly-used datasets ready to add to your
         map.
       </TextWell>
-      <div className="overflow-y-auto placemark-scrollbar max-h-48 mt-4 border border-gray-200 dark:border-gray-700 rounded">
+      <div className="overflow-y-auto squidmaps-scrollbar max-h-48 mt-4 border border-gray-200 dark:border-gray-700 rounded">
         <div className="grid gap-1 p-1">
           {exampleList?.map((example) => {
             const nice = friendlyName(example);
@@ -50,7 +50,7 @@ export function ImportExampleDialog({ onClose }: { onClose: () => void }) {
                 key={example}
                 onClick={async () => {
                   await toast.promise(
-                    fetch(`https://data-library.placemark.io/${example}`)
+                    fetch(`https://data-library.squidmaps.io/${example}`)
                       .then((r) => r.text())
                       .then((geojson) => {
                         return doImport(

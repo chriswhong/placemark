@@ -22,7 +22,7 @@ const CAST_TARGET_DOCS: Record<ExplicitCast, React.ReactNode> = {
   ),
   [ExplicitCast.Boolean]: `Casting to a boolean will transform zero values, null values, empty strings, and strings that are
       equal to "false" to false, and transform everything else to true.`,
-  [ExplicitCast.HTML]: `Casting to rich text will reinterpret the given values to be compatible with Placemark’s
+  [ExplicitCast.HTML]: `Casting to rich text will reinterpret the given values to be compatible with Squidmaps’s
       rich text editor.`,
   [ExplicitCast.JSON]: `Useful only in very peculiar scenarios, this will parse all string values
       of this property into JSON objects, if they can be parsed.`,

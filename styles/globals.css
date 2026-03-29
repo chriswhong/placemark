@@ -19,15 +19,15 @@ details > summary {
   list-style: none !important;
 }
 
-.placemark-cursor-default .mapboxgl-canvas-container {
+.squidmaps-cursor-default .mapboxgl-canvas-container {
   cursor: url("/cursors/cursor-default.svg"), auto !important;
 }
 
-.placemark-cursor-point .mapboxgl-canvas-container {
+.squidmaps-cursor-point .mapboxgl-canvas-container {
   cursor: url("/cursors/cursor-point.svg"), auto !important;
 }
 
-.placemark-cursor-crosshair .mapboxgl-canvas-container {
+.squidmaps-cursor-crosshair .mapboxgl-canvas-container {
   cursor: crosshair !important;
 }
 
@@ -156,12 +156,12 @@ body.dark .mapboxgl-ctrl-attrib-button {
   background-color: hsla(0, 0%, 0%, 0.5);
 }
 
-.placemark-scrollbar::-webkit-scrollbar-thumb {
+.squidmaps-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-gray-400 dark:bg-gray-100;
   @apply hover:bg-gray-500 hover:dark:bg-white;
 }
 
-.placemark-scrollbar::-webkit-scrollbar {
+.squidmaps-scrollbar::-webkit-scrollbar {
   @apply h-3 w-3;
   @apply bg-gray-100 dark:bg-gray-500;
 }
@@ -317,7 +317,7 @@ body.dark .mapboxgl-ctrl-attrib-button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .placemark-appear {
+  .squidmaps-appear {
     animation-duration: 400ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     will-change: transform, opacity;
@@ -339,7 +339,7 @@ body.dark .mapboxgl-ctrl-attrib-button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .placemark-fadein {
+  .squidmaps-fadein {
     animation: fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 }

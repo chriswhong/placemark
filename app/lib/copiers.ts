@@ -3,7 +3,7 @@ import { Right } from "purify-ts/Either";
 import { EitherAsync } from "purify-ts/EitherAsync";
 import type { IFeature } from "types";
 import { CoordinateString } from "./convert/coordinate_string";
-import type { PlacemarkError } from "./errors";
+import type { AppError } from "./errors";
 import { ConvertError } from "./errors";
 
 /**
@@ -11,7 +11,7 @@ import { ConvertError } from "./errors";
  */
 export const COPIERS: Record<
   "wkt" | "geojson" | "geohash" | "coordinates" | "polyline" | "bbox",
-  (arg0: IFeature) => Promise<Either<PlacemarkError, string>>
+  (arg0: IFeature) => Promise<Either<AppError, string>>
 > = {
   wkt: async (feature) => {
     const { WKT } = await import("app/lib/convert/wkt");

@@ -1,15 +1,15 @@
 import { Either } from "purify-ts/Either";
 import type { JsonValue } from "type-fest";
 
-export class PlacemarkError extends Error {
-  name = "PlacemarkError";
+export class AppError extends Error {
+  name = "AppError";
 }
 
-export class ConvertError extends PlacemarkError {
+export class ConvertError extends AppError {
   name = "ConvertError";
 }
 
-export class GeometryError extends PlacemarkError {
+export class GeometryError extends AppError {
   name = "GeometryError";
 }
 

@@ -8,7 +8,7 @@ export function CircleTypesDialog() {
       <DialogHeader title="Circle types" titleIcon={CircleIcon} />
       <div>
         <p>
-          Placemark supports three different kinds of circles: Mercator,
+          Squidmaps supports three different kinds of circles: Mercator,
           Geodesic, and Degrees. How are these different, and when might you
           want to use each of them?
         </p>

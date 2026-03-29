@@ -163,7 +163,7 @@ export function GeoJSONOptions() {
                 target="_blank"
                 className="underline"
                 rel="noreferrer"
-                href="https://www.placemark.io/documentation/winding-order"
+                href="https://www.squidmaps.io/documentation/winding-order"
               >
                 <QuestionMarkCircledIcon className="mr-1 inline-block" />
                 Winding order documentation

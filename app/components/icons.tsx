@@ -93,7 +93,7 @@ export function ShapeUnite16() {
   );
 }
 
-// const PlacemarkIcon = memo(function PlacemarkIcon(props: IconProps) {
+// const SquidmapsIcon = memo(function SquidmapsIcon(props: IconProps) {
 //   return (
 //     <svg viewBox="0 0 300 300" fill="none" {...props}>
 //       <circle cx="75" cy="75" r="17.5" stroke="#9333EA" strokeWidth="15" />

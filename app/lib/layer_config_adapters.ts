@@ -124,8 +124,8 @@ export async function addTileJSONStyle(
 ) {
   // mapboxgl.accessToken = env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-  const sourceId = `placemarkInternalSource${id}`;
-  const layerId = `placemarkInternalLayer${id}`;
+  const sourceId = `squidmapsInternalSource${id}`;
+  const layerId = `squidmapsInternalLayer${id}`;
 
   try {
     const resp = await getTileJSON(layer.url);
@@ -161,8 +161,8 @@ export function addXYZStyle(
 ) {
   // mapboxgl.accessToken = env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-  const sourceId = `placemarkInternalSource${id}`;
-  const layerId = `placemarkInternalLayer${id}`;
+  const sourceId = `squidmapsInternalSource${id}`;
+  const layerId = `squidmapsInternalLayer${id}`;
 
   style.sources[sourceId] = {
     type: "raster",

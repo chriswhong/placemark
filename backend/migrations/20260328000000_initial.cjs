@@ -4,7 +4,7 @@
  * @param {import("node-pg-migrate").MigrationBuilder} pgm
  */
 exports.up = (pgm) => {
-  // GeoJSON features wrapped with Placemark metadata (id, at, folderId, feature)
+  // GeoJSON features wrapped with Squidmaps metadata (id, at, folderId, feature)
   pgm.createTable("features", {
     id: { type: "text", primaryKey: true },
     data: { type: "jsonb", notNull: true },

@@ -403,11 +403,11 @@ export const MapComponent = memo(function MapComponent({
             cursor === "move"
               ? "cursor-move"
               : {
-                  "placemark-cursor-default":
+                  "squidmaps-cursor-default":
                     mode.mode === Mode.NONE ||
                     mode.mode === Mode.DRAW_POLYGON ||
                     mode.mode === Mode.DRAW_LINE,
-                  "placemark-cursor-crosshair":
+                  "squidmaps-cursor-crosshair":
                     mode.mode === Mode.DRAW_POINT ||
                     mode.mode === Mode.DRAW_RECTANGLE ||
                     mode.mode === Mode.LASSO,

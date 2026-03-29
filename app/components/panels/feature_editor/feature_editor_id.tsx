@@ -86,7 +86,7 @@ export function FeatureEditorId({
       </div>
       <div className="pt-2 text-right">
         <a
-          href="https://www.placemark.io/documentation/ids"
+          href="https://www.squidmaps.io/documentation/ids"
           className="underline
             text-purple-500 hover:text-black
             dark:text-purple-300 dark:hover:text-purple-100

@@ -101,13 +101,13 @@ function UrlAPI() {
   return null;
 }
 
-interface PlacemarkPlayProps {
+interface SquidmapsPlayProps {
   username: string;
   mapSlug: string;
   mapTitle: string;
 }
 
-export function PlacemarkPlay({ username, mapSlug, mapTitle }: PlacemarkPlayProps) {
+export function SquidmapsPlay({ username, mapSlug, mapTitle }: SquidmapsPlayProps) {
   const [map, setMap] = useState<PMap | null>(null);
 
   return (

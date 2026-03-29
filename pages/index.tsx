@@ -1,4 +1,4 @@
-import { PlacemarkPlay } from "app/components/placemark_play";
+import { SquidmapsPlay } from "app/components/squidmaps_play";
 import { MapsListPage } from "app/components/maps_list_page";
 import { StrictMode, Suspense, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -105,7 +105,7 @@ function MapApp({ username, mapSlug }: MapAppProps) {
   return (
     <Provider store={storeRef.current}>
       <PersistenceContext.Provider value={persistenceRef.current}>
-        <PlacemarkPlay
+        <SquidmapsPlay
           username={username}
           mapSlug={mapMeta.slug}
           mapTitle={mapMeta.title}
@@ -180,7 +180,7 @@ function AppRoutes({ currentUser }: { currentUser: CurrentUser }) {
     if (mapSlug) {
       return (
         <>
-          <title>Placemark Play</title>
+          <title>Squidmaps</title>
           <MapApp username={username} mapSlug={mapSlug} />
         </>
       );

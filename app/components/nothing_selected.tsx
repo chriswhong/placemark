@@ -17,7 +17,7 @@ export const NothingSelected = memo(function NothingSelected() {
   const openFiles = useOpenFiles();
   const setDialogState = useSetAtom(dialogAtom);
   return (
-    <div className="px-3 pt-3 overflow-y-auto pb-4 text-gray-900 dark:text-gray-300 flex-auto placemark-scrollbar">
+    <div className="px-3 pt-3 overflow-y-auto pb-4 text-gray-900 dark:text-gray-300 flex-auto squidmaps-scrollbar">
       <div className="text-sm font-semibold pb-2">
         Select a drawing tool from the menu
       </div>
