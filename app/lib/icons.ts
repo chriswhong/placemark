@@ -1,16 +1,4 @@
-import {
-  faMapPin,
-  faLocationDot,
-  faStar,
-  faHouse,
-  faFlag,
-  faCar,
-  faCamera,
-  faTree,
-  faBuilding,
-  faHeart,
-  faCableCar
-} from "@fortawesome/free-solid-svg-icons";
+import { fas } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
 export interface AppIcon {
@@ -19,21 +7,58 @@ export interface AppIcon {
   definition: IconDefinition;
 }
 
-export const ICONS: AppIcon[] = [
-  { name: "map-pin", label: "Pin", definition: faMapPin },
-  { name: "location-dot", label: "Location", definition: faLocationDot },
-  { name: "star", label: "Star", definition: faStar },
-  { name: "house", label: "House", definition: faHouse },
-  { name: "flag", label: "Flag", definition: faFlag },
-  { name: "car", label: "Car", definition: faCar },
-  { name: "camera", label: "Camera", definition: faCamera },
-  { name: "tree", label: "Tree", definition: faTree },
-  { name: "building", label: "Building", definition: faBuilding },
-  { name: "heart", label: "Heart", definition: faHeart },
-  { name: "cable-car", label: "Cable Car", definition: faCableCar },
+function toLabel(iconName: string): string {
+  return iconName
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+// Build the full set of unique icons from the fas library (1,400+ icons).
+// Deduplicate by iconName (the fas object has aliases with different camelCase keys).
+export const ALL_ICONS: AppIcon[] = [
+  ...new Map(
+    Object.values(fas).map((def) => [def.iconName, def]),
+  ).values(),
+]
+  .sort((a, b) => a.iconName.localeCompare(b.iconName))
+  .map((def) => ({
+    name: def.iconName,
+    label: toLabel(def.iconName),
+    definition: def as IconDefinition,
+  }));
+
+// Backward-compat alias
+export const ICONS = ALL_ICONS;
+
+export const ICON_MAP = new Map(ALL_ICONS.map((i) => [i.name, i]));
+
+export const COMMON_ICON_NAMES: string[] = [
+  "location-dot",
+  "map-pin",
+  "star",
+  "heart",
+  "flag",
+  "house",
+  "building",
+  "store",
+  "hospital",
+  "utensils",
+  "mug-hot",
+  "camera",
+  "tree",
+  "car",
+  "bicycle",
+  "bus",
+  "parking",
+  "person-hiking",
+  "tent",
+  "anchor",
 ];
 
-export const ICON_MAP = new Map(ICONS.map((i) => [i.name, i]));
+export const COMMON_ICONS: AppIcon[] = COMMON_ICON_NAMES
+  .map((name) => ICON_MAP.get(name))
+  .filter((i): i is AppIcon => i !== undefined);
 
 /**
  * Returns a white-on-transparent SVG data URL suitable for use as a DeckGL
@@ -49,7 +74,7 @@ export function iconToDataUrl(def: IconDefinition, size = 64): string {
 // Pre-build icon descriptors for DeckGL (width/height must match the raster size)
 const ICON_SIZE = 64;
 export const DECK_ICON_DESCRIPTORS = new Map(
-  ICONS.map((icon) => [
+  ALL_ICONS.map((icon) => [
     icon.name,
     {
       url: iconToDataUrl(icon.definition, ICON_SIZE),

@@ -1,4 +1,5 @@
 import { ICON_MAP } from "app/lib/icons";
+import emojiData from "unicode-emoji-json/data-by-emoji.json";
 
 // ---------------------------------------------------------------------------
 // Discriminated union types for marker style options
@@ -22,6 +23,7 @@ export interface PinMarkerOptions {
   innerColor: string; // inner circle fill
   size: number;       // display height in pixels
   icon: string | null;
+  iconColor: string;
 }
 
 export interface EmojiMarkerOptions {
@@ -42,32 +44,48 @@ export const DEFAULT_MARKER_SIZE = 8;
 export const DEFAULT_STROKE_WIDTH = 1;
 export const DEFAULT_ICON_COLOR = "#ffffff";
 
-export const DEFAULT_EMOJI = "🚡";
+export const DEFAULT_EMOJI = "📍";
 export const DEFAULT_EMOJI_SIZE = 32;
-export const EMOJI_CANVAS_SIZE = 64;
+export const EMOJI_CANVAS_SIZE = 40;
 
-export const EMOJI_LIST: { emoji: string; label: string }[] = [
-  { emoji: "🚡", label: "Aerial Tramway" },
-  { emoji: "🏔️", label: "Mountain" },
-  { emoji: "🌊", label: "Wave" },
-  { emoji: "🌲", label: "Evergreen Tree" },
-  { emoji: "🏠", label: "House" },
+export const COMMON_EMOJI_LIST: { emoji: string; label: string }[] = [
+  { emoji: "📍", label: "Pushpin" },
   { emoji: "⭐", label: "Star" },
   { emoji: "❤️", label: "Heart" },
   { emoji: "🔥", label: "Fire" },
-  { emoji: "🌸", label: "Cherry Blossom" },
   { emoji: "🎯", label: "Bullseye" },
-  { emoji: "📍", label: "Pushpin" },
-  { emoji: "🏖️", label: "Beach" },
-  { emoji: "🏕️", label: "Camping" },
-  { emoji: "🗺️", label: "World Map" },
+  { emoji: "🏠", label: "House" },
+  { emoji: "🏢", label: "Office Building" },
+  { emoji: "🏥", label: "Hospital" },
   { emoji: "☕", label: "Coffee" },
   { emoji: "🍕", label: "Pizza" },
-  { emoji: "🐾", label: "Paw Prints" },
+  { emoji: "🌲", label: "Evergreen Tree" },
+  { emoji: "🏔️", label: "Mountain" },
+  { emoji: "🏖️", label: "Beach" },
+  { emoji: "🏕️", label: "Camping" },
+  { emoji: "🚗", label: "Car" },
   { emoji: "🚲", label: "Bicycle" },
-  { emoji: "🎵", label: "Musical Note" },
-  { emoji: "🌺", label: "Hibiscus" },
+  { emoji: "✈️", label: "Airplane" },
+  { emoji: "🐾", label: "Paw Prints" },
+  { emoji: "🗺️", label: "World Map" },
+  { emoji: "📷", label: "Camera" },
 ];
+
+
+// All emojis from the Unicode standard, with labels from unicode-emoji-json.
+// Excludes skin-tone modifier base characters (they inflate the list with bare
+// modifier codepoints that render poorly without a base character).
+export const EMOJI_LIST: { emoji: string; label: string }[] = Object.entries(
+  emojiData as Record<string, { name: string; skin_tone_support: boolean }>,
+)
+  .filter(([, v]) => !v.skin_tone_support)
+  .map(([emoji, v]) => ({
+    emoji,
+    label: v.name
+      .split(" ")
+      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" "),
+  }));
 
 export type EmojiIconMapping = Record<
   string,
@@ -83,7 +101,7 @@ export function buildEmojiAtlas(): {
   atlas: string;
   mapping: EmojiIconMapping;
 } {
-  const COLS = 5;
+  const COLS = 30;
   const ROWS = Math.ceil(EMOJI_LIST.length / COLS);
   const canvas = document.createElement("canvas");
   canvas.width = COLS * EMOJI_CANVAS_SIZE;
@@ -147,6 +165,10 @@ export function getMarkerOptions(
           ? props["pin-size"]
           : DEFAULT_PIN_SIZE,
       icon: typeof props.icon === "string" ? props.icon : null,
+      iconColor:
+        typeof props["icon-color"] === "string"
+          ? props["icon-color"]
+          : DEFAULT_ICON_COLOR,
     };
   }
   return {
@@ -219,6 +241,7 @@ export function generatePinSvg(
   bodyColor: string,
   innerColor: string,
   iconName: string | null,
+  iconColor = "white",
 ): string {
   let iconContent = "";
   if (iconName) {
@@ -235,7 +258,7 @@ export function generatePinSvg(
       const iH = h * scale;
       const ix = PIN_INNER_CX - iW / 2;
       const iy = PIN_INNER_CY - iH / 2;
-      iconContent = `<g transform="translate(${ix},${iy}) scale(${scale})"><path d="${svgPath}" fill="white"/></g>`;
+      iconContent = `<g transform="translate(${ix},${iy}) scale(${scale})"><path d="${svgPath}" fill="${iconColor}"/></g>`;
     }
   }
 
@@ -253,8 +276,9 @@ export function pinSvgDataUrl(
   bodyColor: string,
   innerColor: string,
   iconName: string | null,
+  iconColor = "white",
 ): string {
   return `data:image/svg+xml,${encodeURIComponent(
-    generatePinSvg(bodyColor, innerColor, iconName),
+    generatePinSvg(bodyColor, innerColor, iconName, iconColor),
   )}`;
 }

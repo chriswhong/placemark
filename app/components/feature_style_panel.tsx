@@ -1,24 +1,299 @@
 import { usePersistence } from "app/lib/persistence/context";
 import {
   getMarkerOptions,
-  DEFAULT_PIN_BODY_COLOR,
-  DEFAULT_PIN_INNER_COLOR,
   DEFAULT_PIN_SIZE,
-  DEFAULT_EMOJI,
   DEFAULT_EMOJI_SIZE,
   EMOJI_LIST,
+  COMMON_EMOJI_LIST,
+  pinSvgDataUrl,
   type AnyMarkerOptions,
 } from "app/lib/marker_types";
-import { ICONS, iconToDataUrl } from "app/lib/icons";
+import { ALL_ICONS, COMMON_ICONS, iconToDataUrl } from "app/lib/icons";
 import debounce from "lodash/debounce";
 import { useAtomValue } from "jotai";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { HexColorPicker, HexColorInput } from "react-colorful";
+import { Popover as P } from "radix-ui";
 import { selectedFeaturesAtom } from "state/jotai";
+import type { JsonValue } from "type-fest";
 import type { IWrappedFeature } from "types";
 import { GeometryIcon } from "./panels/feature_editor/feature_editor_folder/items";
-import { ColorPopover } from "./color_popover";
-import { inputClass } from "./elements";
+import { PopoverContent2, Button, inputClass } from "./elements";
+
+// ---------------------------------------------------------------------------
+// Compact color swatch — circle trigger opens full picker popover
+// ---------------------------------------------------------------------------
+
+function ColorSwatch({ color, onChange }: { color: string; onChange: (c: string) => void }) {
+  return (
+    <P.Root>
+      <P.Trigger asChild>
+        <button
+          className="w-5 h-5 rounded-full border border-gray-300 dark:border-gray-600 shrink-0 hover:scale-110 transition-transform"
+          style={{ backgroundColor: color }}
+          title={color}
+        />
+      </P.Trigger>
+      <PopoverContent2 size="no-width">
+        <div className="space-y-2 p-1">
+          <HexColorPicker color={color} onChange={onChange} />
+          <HexColorInput
+            className={inputClass({ _size: "sm" })}
+            prefixed
+            color={color}
+            onChange={onChange}
+          />
+          <P.Close asChild>
+            <Button>Done</Button>
+          </P.Close>
+        </div>
+      </PopoverContent2>
+    </P.Root>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inline slider row — label | range | value on one line
+// ---------------------------------------------------------------------------
+
+function SliderControl({
+  value,
+  min,
+  max,
+  step,
+  display,
+  onChange,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  display: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 w-full h-7 min-w-0">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="flex-1 min-w-0 accent-purple-600"
+      />
+      <span className="text-xs text-gray-500 dark:text-gray-400 w-9 text-right shrink-0">
+        {display}
+      </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Icon popover picker — compact trigger + popover grid
+// ---------------------------------------------------------------------------
+
+function IconPopoverPicker({
+  selected,
+  onSelect,
+}: {
+  selected: string | null;
+  onSelect: (name: string | null) => void;
+}) {
+  const iconDef = selected ? ALL_ICONS.find((i) => i.name === selected) : null;
+
+  return (
+    <P.Root>
+      <P.Trigger asChild>
+        <button className="flex items-center gap-1.5 rounded border border-gray-200 dark:border-gray-700 hover:border-gray-400 transition-colors px-1.5 h-7">
+          {iconDef ? (
+            <>
+              <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[100px]">
+                {iconDef.label}
+              </span>
+              <img
+                src={iconToDataUrl(iconDef.definition, 32)}
+                width={14}
+                height={14}
+                style={{ filter: "invert(0.4)" }}
+                alt={iconDef.label}
+              />
+            </>
+          ) : (
+            <span className="text-gray-400 px-0.5">—</span>
+          )}
+        </button>
+      </P.Trigger>
+      <PopoverContent2 size="no-width">
+        <IconPickerContent selected={selected} onSelect={onSelect} />
+      </PopoverContent2>
+    </P.Root>
+  );
+}
+
+function IconPickerContent({
+  selected,
+  onSelect,
+}: {
+  selected: string | null;
+  onSelect: (name: string | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+
+  const trimmed = query.trim().toLowerCase();
+  const results = trimmed
+    ? ALL_ICONS.filter(
+        (i) =>
+          i.name.includes(trimmed) ||
+          i.label.toLowerCase().includes(trimmed),
+      )
+    : null;
+
+  const displayIcons = results ?? COMMON_ICONS;
+  const heading = results
+    ? results.length === 0
+      ? `No icons found for "${query.trim()}"`
+      : `${results.length} icon${results.length !== 1 ? "s" : ""} found matching "${query.trim()}"`
+    : "Common Map Icons";
+
+  const cellCls = (active: boolean) =>
+    `flex items-center justify-center rounded w-7 h-7 border text-xs transition-colors ${
+      active
+        ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30"
+        : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+    }`;
+
+  return (
+    <div className="flex flex-col gap-2 p-2" style={{ width: 220 }}>
+      <input
+        type="text"
+        placeholder="Search icons…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+        autoFocus
+      />
+      <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+        {heading}
+      </div>
+      {results?.length !== 0 && (
+        <div className="overflow-y-auto squidmaps-scrollbar" style={{ maxHeight: 200 }}>
+        <div className="grid grid-cols-6 gap-1">
+          {!trimmed && (
+            <P.Close asChild>
+              <button
+                title="No icon"
+                onClick={() => onSelect(null)}
+                className={cellCls(selected === null)}
+              >
+                —
+              </button>
+            </P.Close>
+          )}
+          {displayIcons.map((icon) => (
+            <P.Close asChild key={icon.name}>
+              <button
+                title={icon.label}
+                onClick={() => onSelect(icon.name)}
+                className={cellCls(selected === icon.name)}
+              >
+                <img
+                  src={iconToDataUrl(icon.definition, 32)}
+                  width={14}
+                  height={14}
+                  style={{ filter: "invert(0.4)" }}
+                  alt={icon.label}
+                />
+              </button>
+            </P.Close>
+          ))}
+        </div>
+        </div>
+      )}
+      <p className="text-[10px] text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-700 pt-2 mt-1">
+        Icons by{" "}
+        <a
+          href="https://fontawesome.com"
+          target="_blank"
+          rel="noreferrer"
+          className="underline hover:text-gray-600 dark:hover:text-gray-300"
+        >
+          Font Awesome
+        </a>
+        {" · "}
+        <a
+          href="https://fontawesome.com/search?s=solid&ic=free-collection"
+          target="_blank"
+          rel="noreferrer"
+          className="underline hover:text-gray-600 dark:hover:text-gray-300"
+        >
+          See all 1,400+ icons
+        </a>
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Marker preview (header icon that reflects actual marker settings)
+// ---------------------------------------------------------------------------
+
+function MarkerPreview({ markerOptions }: { markerOptions: AnyMarkerOptions }) {
+  if (markerOptions.type === "circle") {
+    const sw = Math.min(markerOptions.strokeWidth, 1.5);
+    return (
+      <svg width="14" height="14" viewBox="0 0 14 14" className="shrink-0">
+        <circle
+          cx="7"
+          cy="7"
+          r={5 - sw / 2}
+          fill={markerOptions.fill}
+          stroke={markerOptions.stroke}
+          strokeWidth={sw}
+        />
+      </svg>
+    );
+  }
+  if (markerOptions.type === "pin") {
+    return (
+      <img
+        src={pinSvgDataUrl(markerOptions.bodyColor, markerOptions.innerColor, markerOptions.icon, markerOptions.iconColor)}
+        width={11}
+        height={14}
+        className="shrink-0"
+        alt=""
+      />
+    );
+  }
+  if (markerOptions.type === "emoji") {
+    return <span className="text-sm leading-none shrink-0">{markerOptions.emoji}</span>;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Label cell for the two-column style grid
+// ---------------------------------------------------------------------------
+
+function PropLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap h-7 flex items-center">
+      {children}
+    </span>
+  );
+}
+
+function ControlCell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-end h-7 w-full">
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main exported component
+// ---------------------------------------------------------------------------
 
 export function FeatureStylePanel() {
   const selectedFeatures = useAtomValue(selectedFeaturesAtom);
@@ -36,31 +311,24 @@ function FeatureStylePanelInner({
 
   const isPoint = wrappedFeature.feature.geometry?.type === "Point";
   const props = (wrappedFeature.feature.properties ?? {}) as Record<string, unknown>;
-
   const markerOptions: AnyMarkerOptions = getMarkerOptions(props);
 
   const name = typeof props.name === "string" ? props.name : "";
-  const description =
-    typeof props.description === "string" ? props.description : "";
+  const description = typeof props.description === "string" ? props.description : "";
 
-  // Local state for inputs/sliders that need immediate feedback
   const [localName, setLocalName] = useState(name);
   const [localDescription, setLocalDescription] = useState(description);
 
-  // Circle-specific
   const circleOpts = markerOptions.type === "circle" ? markerOptions : null;
   const [localMarkerSize, setLocalMarkerSize] = useState(circleOpts?.markerSize ?? 8);
   const [localStrokeWidth, setLocalStrokeWidth] = useState(circleOpts?.strokeWidth ?? 1);
 
-  // Pin-specific
   const pinOpts = markerOptions.type === "pin" ? markerOptions : null;
   const [localPinSize, setLocalPinSize] = useState(pinOpts?.size ?? DEFAULT_PIN_SIZE);
 
-  // Emoji-specific
   const emojiOpts = markerOptions.type === "emoji" ? markerOptions : null;
   const [localEmojiSize, setLocalEmojiSize] = useState(emojiOpts?.size ?? DEFAULT_EMOJI_SIZE);
 
-  // Refs to suppress useEffect sync while the user is typing
   const nameFocused = useRef(false);
   const descriptionFocused = useRef(false);
 
@@ -74,105 +342,80 @@ function FeatureStylePanelInner({
   const wrappedFeatureRef = useRef(wrappedFeature);
   wrappedFeatureRef.current = wrappedFeature;
 
-  // Debounced write — for sliders and text inputs
   const updateProps = useMemo(
     () =>
-      debounce((updates: Record<string, unknown>) => {
+      debounce((updates: Record<string, JsonValue>) => {
         const wf = wrappedFeatureRef.current;
         const existingProps = wf.feature.properties ?? {};
         void transact({
           track: "feature-update-style",
-          putFeatures: [
-            {
-              ...wf,
-              feature: {
-                ...wf.feature,
-                properties: { ...existingProps, ...updates },
-              },
-            },
-          ],
+          putFeatures: [{ ...wf, feature: { ...wf.feature, properties: { ...existingProps, ...updates } } }],
         });
       }, 80),
     [transact],
   );
 
-  // Immediate write — for discrete button actions (type switcher, icon picker)
   const setProps = useCallback(
-    (updates: Record<string, unknown>) => {
+    (updates: Record<string, JsonValue>) => {
       const wf = wrappedFeatureRef.current;
       const existingProps = wf.feature.properties ?? {};
       void transact({
         track: "feature-update-style",
-        putFeatures: [
-          {
-            ...wf,
-            feature: {
-              ...wf.feature,
-              properties: { ...existingProps, ...updates },
-            },
-          },
-        ],
+        putFeatures: [{ ...wf, feature: { ...wf.feature, properties: { ...existingProps, ...updates } } }],
       });
     },
     [transact],
   );
 
   const geometryType = wrappedFeature.feature.geometry?.type;
-  const displayType = geometryType === "Point" || geometryType === "MultiPoint" ? "Point"
+  const displayType =
+    geometryType === "Point" || geometryType === "MultiPoint" ? "Point"
     : geometryType === "LineString" || geometryType === "MultiLineString" ? "Line"
     : geometryType === "Polygon" || geometryType === "MultiPolygon" ? "Polygon"
     : "Feature";
 
   return (
-    <div className="flex flex-col gap-3 p-3">
-      {/* Feature header: geometry icon + name input inline */}
+    <div className="flex flex-col gap-3 p-3 min-w-0 overflow-hidden">
+      {/* Header: marker preview + name input */}
       <div className="flex items-center gap-1.5">
-        <GeometryIcon type={geometryType} />
+        {isPoint ? <MarkerPreview markerOptions={markerOptions} /> : <GeometryIcon type={geometryType} />}
         <input
           type="text"
           value={localName}
           onFocus={() => { nameFocused.current = true; }}
           onBlur={() => { nameFocused.current = false; }}
-          onChange={(e) => {
-            setLocalName(e.target.value);
-            updateProps({ name: e.target.value });
-          }}
-          placeholder='name this feature'
+          onChange={(e) => { setLocalName(e.target.value); updateProps({ name: e.target.value }); }}
+          placeholder={displayType}
           className={inputClass({ _size: "sm" }) + " w-full"}
         />
       </div>
 
-      {/* Details */}
-      <div className="flex flex-col gap-2">
-        <textarea
-          value={localDescription}
-          onFocus={() => { descriptionFocused.current = true; }}
-          onBlur={() => { descriptionFocused.current = false; }}
-          onChange={(e) => {
-            setLocalDescription(e.target.value);
-            updateProps({ description: e.target.value });
-          }}
-          placeholder="add a description"
-          rows={2}
-          className="block w-full text-sm border rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white border-gray-200 dark:border-gray-700 resize-none focus:outline-none focus:ring-1 focus:ring-purple-500"
-        />
-      </div>
+      {/* Description */}
+      <textarea
+        value={localDescription}
+        onFocus={() => { descriptionFocused.current = true; }}
+        onBlur={() => { descriptionFocused.current = false; }}
+        onChange={(e) => { setLocalDescription(e.target.value); updateProps({ description: e.target.value }); }}
+        placeholder="add a description"
+        rows={2}
+        className="block w-full text-sm border rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white border-gray-200 dark:border-gray-700 resize-none focus:outline-none focus:ring-1 focus:ring-purple-500"
+      />
 
       {/* Style */}
-      <div>
-        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
+      <div className="flex flex-col gap-2">
+        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
           Style
         </div>
 
         {isPoint ? (
-          <div className="flex flex-col gap-3">
+          <>
             {/* Marker type switcher */}
             <div className="flex rounded overflow-hidden border border-gray-200 dark:border-gray-700">
               {(["circle", "pin", "emoji"] as const).map((type, i) => (
                 <button
                   key={type}
                   onClick={() => setProps({ "marker-type": type })}
-                  className={`flex-1 text-sm py-1 px-2 transition-colors capitalize ${
+                  className={`flex-1 text-xs py-1 px-2 transition-colors capitalize ${
                     i > 0 ? "border-l border-gray-200 dark:border-gray-700" : ""
                   } ${
                     markerOptions.type === type
@@ -187,170 +430,90 @@ function FeatureStylePanelInner({
 
             {/* ── Circle controls ── */}
             {markerOptions.type === "circle" && (
-              <>
-                <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Fill</span>
-                  <ColorPopover
-                    color={markerOptions.fill}
-                    onChange={(c) => updateProps({ fill: c })}
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Outline</span>
-                  <ColorPopover
-                    color={markerOptions.stroke}
-                    onChange={(c) => updateProps({ stroke: c })}
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Diameter</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {Math.round(localMarkerSize * 2)}px
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={4}
-                    max={40}
-                    step={1}
-                    value={localMarkerSize * 2}
-                    onChange={(e) => {
-                      const v = Number(e.target.value) / 2;
-                      setLocalMarkerSize(v);
-                      updateProps({ "marker-size": v });
-                    }}
-                    className="w-full accent-purple-600"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Outline width</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {localStrokeWidth}px
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={8}
-                    step={0.5}
-                    value={localStrokeWidth}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setLocalStrokeWidth(v);
-                      updateProps({ "stroke-width": v });
-                    }}
-                    className="w-full accent-purple-600"
-                  />
-                </div>
-
-                <IconPicker
-                  selected={markerOptions.icon}
-                  onSelect={(name) => setProps({ icon: name })}
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
+                <PropLabel>Size</PropLabel>
+                <SliderControl
+                  value={localMarkerSize * 2}
+                  min={4} max={40} step={1}
+                  display={`${Math.round(localMarkerSize * 2)}px`}
+                  onChange={(v: number) => { setLocalMarkerSize(v / 2); updateProps({ "marker-size": v / 2 }); }}
                 />
-
+                <PropLabel>Color</PropLabel>
+                <ControlCell><ColorSwatch color={markerOptions.fill} onChange={(c) => updateProps({ fill: c })} /></ControlCell>
+                <PropLabel>Stroke</PropLabel>
+                <SliderControl
+                  value={localStrokeWidth}
+                  min={0} max={8} step={0.5}
+                  display={`${localStrokeWidth}px`}
+                  onChange={(v: number) => { setLocalStrokeWidth(v); updateProps({ "stroke-width": v }); }}
+                />
+                <PropLabel>Stroke Color</PropLabel>
+                <ControlCell><ColorSwatch color={markerOptions.stroke} onChange={(c) => updateProps({ stroke: c })} /></ControlCell>
+                <PropLabel>Icon</PropLabel>
+                <ControlCell><IconPopoverPicker selected={markerOptions.icon} onSelect={(n) => setProps({ icon: n })} /></ControlCell>
                 {markerOptions.icon !== null && (
-                  <div className="grid grid-cols-[auto_1fr] items-center gap-x-3">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Icon color</span>
-                    <ColorPopover
-                      color={markerOptions.iconColor}
-                      onChange={(c) => updateProps({ "icon-color": c })}
-                    />
-                  </div>
+                  <>
+                    <PropLabel>Icon Color</PropLabel>
+                    <ControlCell><ColorSwatch color={markerOptions.iconColor} onChange={(c) => updateProps({ "icon-color": c })} /></ControlCell>
+                  </>
                 )}
-              </>
+              </div>
             )}
 
             {/* ── Pin controls ── */}
             {markerOptions.type === "pin" && (
-              <>
-                <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Body</span>
-                  <ColorPopover
-                    color={markerOptions.bodyColor}
-                    onChange={(c) => updateProps({ "pin-body-color": c })}
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Inner</span>
-                  <ColorPopover
-                    color={markerOptions.innerColor}
-                    onChange={(c) => updateProps({ "pin-inner-color": c })}
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Size</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {localPinSize}px
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={24}
-                    max={80}
-                    step={2}
-                    value={localPinSize}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setLocalPinSize(v);
-                      updateProps({ "pin-size": v });
-                    }}
-                    className="w-full accent-purple-600"
-                  />
-                </div>
-
-                <IconPicker
-                  selected={markerOptions.icon}
-                  onSelect={(name) => setProps({ icon: name })}
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
+                <PropLabel>Size</PropLabel>
+                <SliderControl
+                  value={localPinSize}
+                  min={24} max={80} step={2}
+                  display={`${localPinSize}px`}
+                  onChange={(v: number) => { setLocalPinSize(v); updateProps({ "pin-size": v }); }}
                 />
-              </>
+                <PropLabel>Body Color</PropLabel>
+                <ControlCell><ColorSwatch color={markerOptions.bodyColor} onChange={(c) => updateProps({ "pin-body-color": c })} /></ControlCell>
+                <PropLabel>Inner Color</PropLabel>
+                <ControlCell><ColorSwatch color={markerOptions.innerColor} onChange={(c) => updateProps({ "pin-inner-color": c })} /></ControlCell>
+                <PropLabel>Icon</PropLabel>
+                <ControlCell><IconPopoverPicker selected={markerOptions.icon} onSelect={(n) => setProps({ icon: n })} /></ControlCell>
+                {markerOptions.icon !== null && (
+                  <>
+                    <PropLabel>Icon Color</PropLabel>
+                    <ControlCell><ColorSwatch color={markerOptions.iconColor} onChange={(c) => updateProps({ "icon-color": c })} /></ControlCell>
+                  </>
+                )}
+              </div>
             )}
 
             {/* ── Emoji controls ── */}
             {markerOptions.type === "emoji" && (
-              <>
-                <EmojiPicker
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
+                  <PropLabel>Size</PropLabel>
+                  <SliderControl
+                    value={localEmojiSize}
+                    min={16} max={80} step={2}
+                    display={`${localEmojiSize}px`}
+                    onChange={(v: number) => { setLocalEmojiSize(v); updateProps({ "emoji-size": v }); }}
+                  />
+                </div>
+                <EmojiPickerContent
                   selected={markerOptions.emoji}
                   onSelect={(e) => setProps({ emoji: e })}
                 />
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Size</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {localEmojiSize}px
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={16}
-                    max={80}
-                    step={2}
-                    value={localEmojiSize}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setLocalEmojiSize(v);
-                      updateProps({ "emoji-size": v });
-                    }}
-                    className="w-full accent-purple-600"
-                  />
-                </div>
-              </>
+              </div>
             )}
-          </div>
-        ) : (
-          <>
-            <HexColorPicker
-              color={typeof props.fill === "string" ? props.fill : "#7c3aed"}
-              onChange={(c) => updateProps({ fill: c })}
-            />
-            <HexColorInput
-              color={typeof props.fill === "string" ? props.fill : "#7c3aed"}
-              onChange={(c) => updateProps({ fill: c })}
-              prefixed
-              className="mt-2 w-full text-sm font-mono border border-gray-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white"
-            />
           </>
+        ) : (
+          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
+            <PropLabel>Fill</PropLabel>
+            <ControlCell>
+              <ColorSwatch
+                color={typeof props.fill === "string" ? props.fill : "#7c3aed"}
+                onChange={(c) => updateProps({ fill: c })}
+              />
+            </ControlCell>
+          </div>
         )}
       </div>
     </div>
@@ -358,89 +521,60 @@ function FeatureStylePanelInner({
 }
 
 // ---------------------------------------------------------------------------
-// Emoji picker
+// Emoji picker (inline)
 // ---------------------------------------------------------------------------
 
-function EmojiPicker({
+function EmojiPickerContent({
   selected,
   onSelect,
 }: {
   selected: string;
   onSelect: (emoji: string) => void;
 }) {
-  return (
-    <div>
-      <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">Emoji</div>
-      <div className="grid grid-cols-5 gap-1.5">
-        {EMOJI_LIST.map(({ emoji, label }) => (
-          <button
-            key={emoji}
-            title={label}
-            onClick={() => onSelect(emoji)}
-            className={`flex items-center justify-center rounded h-9 border text-xl ${
-              selected === emoji
-                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30"
-                : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
-            }`}
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+  const [query, setQuery] = useState("");
 
-// ---------------------------------------------------------------------------
-// Shared icon picker (used by both Circle and Pin sections)
-// ---------------------------------------------------------------------------
+  const trimmed = query.trim().toLowerCase();
+  const results = trimmed
+    ? EMOJI_LIST.filter(({ label }) => label.toLowerCase().includes(trimmed))
+    : null;
 
-function IconPicker({
-  selected,
-  onSelect,
-}: {
-  selected: string | null;
-  onSelect: (name: string | null) => void;
-}) {
+  const displayEmojis = results ?? COMMON_EMOJI_LIST;
+  const heading = results
+    ? results.length === 0
+      ? `No emojis found for "${query.trim()}"`
+      : `${results.length} emoji${results.length !== 1 ? "s" : ""} found matching "${query.trim()}"`
+    : "Commonly Used";
+
+  const cellCls = (active: boolean) =>
+    `flex items-center justify-center rounded w-8 h-8 border text-lg transition-colors ${
+      active
+        ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30"
+        : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+    }`;
+
   return (
-    <div>
-      <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">Icon</div>
-      <div className="grid grid-cols-5 gap-1.5">
-        <button
-          title="No icon"
-          onClick={() => onSelect(null)}
-          className={`flex items-center justify-center rounded h-9 border text-xs text-gray-400 ${
-            selected === null
-              ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30"
-              : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
-          }`}
-        >
-          —
-        </button>
-        {ICONS.map((icon) => {
-          const isSelected = selected === icon.name;
-          return (
-            <button
-              key={icon.name}
-              title={icon.label}
-              onClick={() => onSelect(icon.name)}
-              className={`flex items-center justify-center rounded h-9 border ${
-                isSelected
-                  ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30"
-                  : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
-              }`}
-            >
-              <img
-                src={iconToDataUrl(icon.definition, 32)}
-                alt={icon.label}
-                width={16}
-                height={16}
-                style={{ filter: "invert(0.4)" }}
-              />
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-2">
+      <input
+        type="text"
+        placeholder="Search emojis…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+      />
+      <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+        {heading}
       </div>
+      {results?.length !== 0 && (
+        <div className="overflow-y-auto squidmaps-scrollbar" style={{ maxHeight: 200 }}>
+          <div className="grid grid-cols-5 gap-1">
+            {displayEmojis.map(({ emoji, label }) => (
+              <button key={emoji} title={label} onClick={() => onSelect(emoji)} className={cellCls(selected === emoji)}>
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
