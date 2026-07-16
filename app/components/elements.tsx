@@ -37,55 +37,16 @@ export function Hint({ children }: { children: React.ReactNode }) {
 }
 
 export function SquidmapsIcon({ className }: React.HTMLAttributes<SVGElement>) {
-  const circleAttrs = {
-    r: "17.5",
-    stroke: "currentColor",
-    strokeWidth: "15",
-  } as const;
   return (
     <svg
-      viewBox="0 0 300 300"
-      fill="none"
+      viewBox="0 0 60 60"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <circle cx="75" cy="75" {...circleAttrs} />
-      <circle cx="225" cy="225" {...circleAttrs} />
-      <circle cx="225" cy="75" {...circleAttrs} />
-      <circle cx="75" cy="225" {...circleAttrs} />
-      <line
-        x1="75"
-        y1="95"
-        x2="75"
-        y2="208"
-        stroke="currentColor"
-        strokeWidth="20"
-      />
-      <line
-        x1="226"
-        y1="95"
-        x2="226"
-        y2="208"
-        stroke="currentColor"
-        strokeWidth="20"
-      />
-      <line
-        x1="95"
-        y1="75"
-        x2="208"
-        y2="75"
-        stroke="currentColor"
-        strokeWidth="20"
-      />
-      <line
-        x1="95"
-        y1="225"
-        x2="208"
-        y2="225"
-        stroke="currentColor"
-        strokeWidth="20"
-      />
-      <rect x="110" y="110" width="80" height="80" rx="5" fill="currentColor" />
+      <ellipse cx="39" cy="17" rx="13.5" ry="11" fill="#1f7a6c" transform="rotate(-22 39 17)" />
+      <ellipse cx="34.5" cy="12.5" rx="5.2" ry="4" fill="#fff" transform="rotate(-22 34.5 12.5)" />
+      <path d="M 34.5,12.5 L 36.26,13.98 A 2.3,2.3 0 1,0 36.77,12.10 Z" fill="#12312c" transform="rotate(-22 34.5 12.5)" />
+      <path d="M29 25 C 22 30, 14 34, 7 45 C 12 42, 17 39, 22 34 C 20 39, 16 44, 12 51 C 18 47, 24 42, 28 34 C 27 40, 25 46, 23 53 C 29 48, 34 41, 35 32 C 35 38, 35 44, 36 50 C 40 44, 41 37, 39 30 Z" fill="#1f7a6c" />
     </svg>
   );
 }

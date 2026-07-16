@@ -17,7 +17,7 @@ module.exports = {
       "state-open": 'state="open"',
     },
     fontFamily: {
-      sans: ["Inter", "sans-serif"],
+      sans: ["Nunito", "sans-serif"],
       mono: ["Source Code Pro", "monospace"],
     },
     colors: {
@@ -26,7 +26,18 @@ module.exports = {
       black: colors.black,
       white: colors.white,
       gray: colors.neutral,
-      purple: colors.purple,
+      purple: {
+        50:  "#eef7f5",
+        100: "#d4ede9",
+        200: "#a9dbd3",
+        300: "#7ec8bc",
+        400: "#4db3a5",
+        500: "#1f7a6c",
+        600: "#1f7a6c",
+        700: "#196358",
+        800: "#12312c",
+        900: "#0c211e",
+      },
       yellow: colors.yellow,
       red: colors.red,
     },

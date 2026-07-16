@@ -14,7 +14,7 @@ import { DEFAULT_IMPORT_OPTIONS, detectType } from "app/lib/convert";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronLeftIcon } from "@radix-ui/react-icons";
 import { Tooltip as T } from "radix-ui";
-import { TContent, StyledTooltipArrow } from "./elements";
+import { SquidmapsIcon, TContent, StyledTooltipArrow } from "./elements";
 import { Suspense, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { dialogAtom, selectedFeaturesAtom } from "state/jotai";
@@ -123,26 +123,52 @@ interface SquidmapsProps {
   mapTitle: string;
 }
 
+const panelShadow = "0 6px 20px rgba(18,49,44,0.14)";
+
+function MapWatermark() {
+  return (
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-sm pointer-events-none select-none">
+      <SquidmapsIcon className="w-4 h-4" />
+      <span className="text-[11px] font-extrabold text-[#12312c]/70 tracking-tight">
+        squidmaps
+      </span>
+    </div>
+  );
+}
+
 export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
   const [map, setMap] = useState<PMap | null>(null);
 
   return (
-    <main className="h-screen flex flex-col bg-white dark:bg-gray-800">
+    <main className="h-screen flex flex-col">
       <T.Provider>
         <MapContext.Provider value={map}>
           <div className="flex-auto relative">
             <MapComponent setMap={setMap} />
             <Legend />
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-md px-1">
+
+            {/* Mode toolbar — bottom center pill */}
+            <div
+              className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center bg-white rounded-full border border-[#dde6e2] px-2"
+              style={{ boxShadow: panelShadow }}
+            >
               <Modes replaceGeometryForId={null} />
             </div>
-            <div className="absolute top-[5px] bottom-[5px] left-[5px] z-10 w-64 flex flex-col bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
-              <div className="flex items-center gap-x-2 px-2 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
+
+            {/* Map watermark */}
+            <MapWatermark />
+
+            {/* Left panel */}
+            <div
+              className="absolute top-3 bottom-3 left-3 z-10 w-[270px] flex flex-col bg-white rounded-2xl border border-[#dde6e2] overflow-hidden"
+              style={{ boxShadow: panelShadow }}
+            >
+              <div className="flex items-center gap-x-2 px-3 py-2.5 border-b border-[#dde6e2] shrink-0">
                 <T.Root delayDuration={300}>
                   <T.Trigger asChild>
                     <a
                       href={`/@${username}`}
-                      className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0"
+                      className="text-[#8fa8a2] hover:text-[#12312c] transition-colors shrink-0"
                     >
                       <ChevronLeftIcon className="w-5 h-5" />
                     </a>
@@ -160,26 +186,33 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
                     mapSlug={mapSlug}
                     initialTitle={mapTitle}
                   />
-                  <span className="text-xs text-gray-400 truncate">
+                  <span className="text-xs text-[#8fa8a2] truncate">
                     /@{username}/{mapSlug}
                   </span>
                 </div>
               </div>
-              <div className="px-2 pt-1 shrink-0">
-                <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Features</span>
+              <div className="px-3 pt-2 shrink-0">
+                <span className="text-[10px] font-semibold text-[#8fa8a2] uppercase tracking-wide">
+                  Features
+                </span>
               </div>
               <FeatureEditorFolderInner />
             </div>
-            <div className="absolute top-[5px] bottom-[5px] right-[5px] z-10 w-64 flex flex-col bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
-              <div className="flex items-center gap-x-2 px-2 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
-                <div className="w-7 h-7 rounded flex items-center justify-center bg-purple-600 text-white text-xs font-bold shrink-0 select-none">
-                  C
+
+            {/* Right panel */}
+            <div
+              className="absolute top-3 bottom-3 right-3 z-10 w-[270px] flex flex-col bg-white rounded-2xl border border-[#dde6e2] overflow-hidden"
+              style={{ boxShadow: panelShadow }}
+            >
+              <div className="flex items-center gap-x-2 px-3 py-2.5 border-b border-[#dde6e2] shrink-0">
+                <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center bg-[#12312c] text-white text-xs font-bold shrink-0 select-none">
+                  {username[0]?.toUpperCase() ?? "?"}
                 </div>
                 <div className="flex-1" />
-                <button className="text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <button className="text-xs px-2.5 py-1 rounded-full border border-[#dde6e2] text-[#5b7d76] hover:bg-[#eef3f1] transition-colors font-semibold">
                   Preview
                 </button>
-                <button className="text-xs px-2 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white transition-colors">
+                <button className="text-xs px-2.5 py-1 rounded-full bg-[#1f7a6c] hover:bg-[#196358] text-white transition-colors font-semibold">
                   Publish
                 </button>
               </div>

@@ -1,5 +1,7 @@
 import { Squidmaps } from "app/components/squidmaps";
 import { MapsListPage } from "app/components/maps_list_page";
+import { LandingPage } from "app/components/landing_page";
+import { PublicProfilePage } from "app/components/public_profile_page";
 import { StrictMode, Suspense, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Route, Switch, useLocation } from "wouter";
@@ -85,7 +87,7 @@ function MapApp({ username, mapSlug }: MapAppProps) {
           <p className="text-sm text-gray-600 max-w-sm">{error}</p>
           <a
             href={`/@${username}`}
-            className="text-sm text-purple-600 underline mt-3 block"
+            className="text-sm text-[#1f7a6c] underline mt-3 block"
           >
             ← Back to maps
           </a>
@@ -126,21 +128,24 @@ function BackendCheck({
   children: (user: CurrentUser) => React.ReactNode;
 }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [status, setStatus] = useState<"loading" | "authed" | "unauthed" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/me")
       .then((r) => {
+        if (r.status === 401) { setStatus("unauthed"); return null; }
         if (!r.ok) throw new Error(`Backend returned ${r.status}`);
         return r.json() as Promise<CurrentUser>;
       })
-      .then((u) => setUser(u))
+      .then((u) => { if (u) { setUser(u); setStatus("authed"); } })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Could not reach backend");
+        setStatus("error");
       });
   }, []);
 
-  if (!user && !error) {
+  if (status === "loading") {
     return (
       <div className="flex items-center justify-center h-screen text-gray-400 text-sm">
         Connecting…
@@ -148,7 +153,11 @@ function BackendCheck({
     );
   }
 
-  if (error) {
+  if (status === "unauthed") {
+    return <LandingPage />;
+  }
+
+  if (status === "error") {
     return (
       <div className="flex items-center justify-center h-screen text-center p-8">
         <div>
@@ -182,6 +191,15 @@ function AppRoutes({ currentUser }: { currentUser: CurrentUser }) {
         <>
           <title>Squidmaps</title>
           <MapApp username={username} mapSlug={mapSlug} />
+        </>
+      );
+    }
+    // Viewing another user's profile → public read-only view
+    if (username !== currentUser.username) {
+      return (
+        <>
+          <title>@{username} — squidmaps</title>
+          <PublicProfilePage username={username} />
         </>
       );
     }
