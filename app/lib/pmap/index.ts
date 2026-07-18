@@ -511,7 +511,6 @@ export default class PMap {
             : 2;
         },
         lineWidthUnits: "pixels" as const,
-        capRounded: true,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ...({
           getDashArray: (f: GeoJSON.Feature): [number, number] => {
