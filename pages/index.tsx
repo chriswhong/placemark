@@ -220,6 +220,12 @@ function AppRoutes({ currentUser }: { currentUser: CurrentUser }) {
       <Route path="/secret-styleguide">
         <StyleGuide />
       </Route>
+      <Route path="/secret-landing">
+        <LandingPage />
+      </Route>
+      <Route path="/secret-profile">
+        <PublicProfilePage username={currentUser.username} />
+      </Route>
       <Route>
         <RedirectToUser username={currentUser.username} />
       </Route>

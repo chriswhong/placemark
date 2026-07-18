@@ -292,6 +292,72 @@ function ControlCell({ children }: { children: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
+// Dash array selector — preset dropdown + optional custom text input
+// ---------------------------------------------------------------------------
+
+const DASH_PRESETS = [
+  { label: "Solid", value: "" },
+  { label: "Dotted  · · · · ·", value: "2 2" },
+  { label: "Short dash  - - - -", value: "4 4" },
+  { label: "Dashed  — — — —", value: "8 4" },
+  { label: "Long dash  —— ——", value: "16 4" },
+  { label: "Dash-dot  — · — ·", value: "8 4 2 4" },
+] as const;
+
+function DashArraySelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const isPreset = DASH_PRESETS.some((p) => p.value === value);
+  const [mode, setMode] = useState<"preset" | "custom">(isPreset ? "preset" : "custom");
+  const [customValue, setCustomValue] = useState(isPreset ? "" : value);
+
+  const selectValue = mode === "custom" ? "__custom__" : value;
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const v = e.target.value;
+    if (v === "__custom__") {
+      setMode("custom");
+    } else {
+      setMode("preset");
+      onChange(v);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1 w-full">
+      <select
+        value={selectValue}
+        onChange={handleSelectChange}
+        className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded px-1.5 h-7 bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+      >
+        {DASH_PRESETS.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
+          </option>
+        ))}
+        <option value="__custom__">Custom…</option>
+      </select>
+      {mode === "custom" && (
+        <input
+          type="text"
+          value={customValue}
+          onChange={(e) => {
+            setCustomValue(e.target.value);
+            onChange(e.target.value);
+          }}
+          placeholder="e.g. 8 4 2 4"
+          className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded px-2 h-7 bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main exported component
 // ---------------------------------------------------------------------------
 
@@ -310,6 +376,9 @@ function FeatureStylePanelInner({
   const transact = rep.useTransact();
 
   const isPoint = wrappedFeature.feature.geometry?.type === "Point";
+  const isLine =
+    wrappedFeature.feature.geometry?.type === "LineString" ||
+    wrappedFeature.feature.geometry?.type === "MultiLineString";
   const props = (wrappedFeature.feature.properties ?? {}) as Record<string, unknown>;
   const markerOptions: AnyMarkerOptions = getMarkerOptions(props);
 
@@ -504,6 +573,23 @@ function FeatureStylePanelInner({
               </div>
             )}
           </>
+        ) : isLine ? (
+          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
+            <PropLabel>Stroke</PropLabel>
+            <ControlCell>
+              <ColorSwatch
+                color={typeof props.stroke === "string" ? props.stroke : "#7c3aed"}
+                onChange={(c) => updateProps({ stroke: c })}
+              />
+            </ControlCell>
+            <PropLabel>Line style</PropLabel>
+            <div className="flex items-start justify-end w-full py-0.5">
+              <DashArraySelect
+                value={typeof props["stroke-dasharray"] === "string" ? props["stroke-dasharray"] : ""}
+                onChange={(v) => updateProps({ "stroke-dasharray": v })}
+              />
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
             <PropLabel>Fill</PropLabel>
@@ -511,6 +597,13 @@ function FeatureStylePanelInner({
               <ColorSwatch
                 color={typeof props.fill === "string" ? props.fill : "#7c3aed"}
                 onChange={(c) => updateProps({ fill: c })}
+              />
+            </ControlCell>
+            <PropLabel>Stroke</PropLabel>
+            <ControlCell>
+              <ColorSwatch
+                color={typeof props.stroke === "string" ? props.stroke : "#7c3aed"}
+                onChange={(c) => updateProps({ stroke: c })}
               />
             </ControlCell>
           </div>

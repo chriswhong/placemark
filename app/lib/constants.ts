@@ -171,6 +171,7 @@ export const SIMPLESTYLE_PROPERTIES = [
   "stroke",
   "stroke-width",
   "stroke-opacity",
+  "stroke-dasharray",
   "fill",
   "fill-opacity",
 ] as const;

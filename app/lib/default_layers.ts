@@ -14,12 +14,12 @@ export type LayerConfigTemplate = Pick<
 const LAYERS: Record<string, LayerConfigTemplate> = {
   MONOCHROME: {
     name: "Monochrome",
-    url: "mapbox://styles/mapbox/light-v10",
+    url: "mapbox://styles/mapbox/light-v11",
     ...defaults,
   },
   DARK: {
     name: "Dark",
-    url: "mapbox://styles/mapbox/dark-v10",
+    url: "mapbox://styles/mapbox/dark-v11",
     ...defaults,
   },
   SATELLITE: {

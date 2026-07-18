@@ -14,8 +14,8 @@ import { DEFAULT_IMPORT_OPTIONS, detectType } from "app/lib/convert";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronLeftIcon } from "@radix-ui/react-icons";
 import { Tooltip as T } from "radix-ui";
-import { SquidmapsIcon, TContent, StyledTooltipArrow } from "./elements";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { TContent, StyledTooltipArrow } from "./elements";
+import { Suspense, useContext, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { dialogAtom, selectedFeaturesAtom } from "state/jotai";
 import { match } from "ts-pattern";
@@ -125,16 +125,25 @@ interface SquidmapsProps {
 
 const panelShadow = "0 6px 20px rgba(18,49,44,0.14)";
 
-function MapWatermark() {
+function DebugPanel() {
+  const map = useContext(MapContext);
   return (
-    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-sm pointer-events-none select-none">
-      <SquidmapsIcon className="w-4 h-4" />
-      <span className="text-[11px] font-extrabold text-[#12312c]/70 tracking-tight">
-        squidmaps
-      </span>
+    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10">
+      <button
+        className="text-[10px] px-2 py-0.5 rounded border border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 bg-white/80 transition-colors font-mono"
+        onClick={() => {
+          if (map) {
+            // eslint-disable-next-line no-console
+            console.log("Map style:", map.map.getStyle());
+          }
+        }}
+      >
+        log style
+      </button>
     </div>
   );
 }
+
 
 export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
   const [map, setMap] = useState<PMap | null>(null);
@@ -155,8 +164,6 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
               <Modes replaceGeometryForId={null} />
             </div>
 
-            {/* Map watermark */}
-            <MapWatermark />
 
             {/* Left panel */}
             <div
@@ -198,6 +205,8 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
               </div>
               <FeatureEditorFolderInner />
             </div>
+
+            <DebugPanel />
 
             {/* Right panel */}
             <div
