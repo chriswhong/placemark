@@ -292,67 +292,39 @@ function ControlCell({ children }: { children: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Dash array selector — preset dropdown + optional custom text input
+// Line style toggle — solid / dashed / dotted
 // ---------------------------------------------------------------------------
 
-const DASH_PRESETS = [
+const LINE_STYLES = [
   { label: "Solid", value: "" },
-  { label: "Dotted  · · · · ·", value: "2 2" },
-  { label: "Short dash  - - - -", value: "4 4" },
-  { label: "Dashed  — — — —", value: "8 4" },
-  { label: "Long dash  —— ——", value: "16 4" },
-  { label: "Dash-dot  — · — ·", value: "8 4 2 4" },
+  { label: "Dashed", value: "8 4" },
+  { label: "Dotted", value: "2 2" },
 ] as const;
 
-function DashArraySelect({
+function LineStyleToggle({
   value,
   onChange,
 }: {
   value: string;
   onChange: (v: string) => void;
 }) {
-  const isPreset = DASH_PRESETS.some((p) => p.value === value);
-  const [mode, setMode] = useState<"preset" | "custom">(isPreset ? "preset" : "custom");
-  const [customValue, setCustomValue] = useState(isPreset ? "" : value);
-
-  const selectValue = mode === "custom" ? "__custom__" : value;
-
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const v = e.target.value;
-    if (v === "__custom__") {
-      setMode("custom");
-    } else {
-      setMode("preset");
-      onChange(v);
-    }
-  };
-
   return (
-    <div className="flex flex-col gap-1 w-full">
-      <select
-        value={selectValue}
-        onChange={handleSelectChange}
-        className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded px-1.5 h-7 bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-      >
-        {DASH_PRESETS.map((p) => (
-          <option key={p.value} value={p.value}>
-            {p.label}
-          </option>
-        ))}
-        <option value="__custom__">Custom…</option>
-      </select>
-      {mode === "custom" && (
-        <input
-          type="text"
-          value={customValue}
-          onChange={(e) => {
-            setCustomValue(e.target.value);
-            onChange(e.target.value);
-          }}
-          placeholder="e.g. 8 4 2 4"
-          className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded px-2 h-7 bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-        />
-      )}
+    <div className="flex rounded overflow-hidden border border-gray-200 dark:border-gray-700 w-full">
+      {LINE_STYLES.map((opt, i) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 text-xs py-1 transition-colors ${
+            i > 0 ? "border-l border-gray-200 dark:border-gray-700" : ""
+          } ${
+            value === opt.value
+              ? "bg-[#1f7a6c] text-white"
+              : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -398,6 +370,9 @@ function FeatureStylePanelInner({
   const emojiOpts = markerOptions.type === "emoji" ? markerOptions : null;
   const [localEmojiSize, setLocalEmojiSize] = useState(emojiOpts?.size ?? DEFAULT_EMOJI_SIZE);
 
+  const [localLineWidth, setLocalLineWidth] = useState(typeof props["stroke-width"] === "number" ? props["stroke-width"] : 2);
+  const [localLineOpacity, setLocalLineOpacity] = useState(typeof props["stroke-opacity"] === "number" ? props["stroke-opacity"] : 1);
+
   const nameFocused = useRef(false);
   const descriptionFocused = useRef(false);
 
@@ -407,6 +382,8 @@ function FeatureStylePanelInner({
   useEffect(() => { setLocalStrokeWidth(circleOpts?.strokeWidth ?? 1); }, [circleOpts?.strokeWidth]);
   useEffect(() => { setLocalPinSize(pinOpts?.size ?? DEFAULT_PIN_SIZE); }, [pinOpts?.size]);
   useEffect(() => { setLocalEmojiSize(emojiOpts?.size ?? DEFAULT_EMOJI_SIZE); }, [emojiOpts?.size]);
+  useEffect(() => { setLocalLineWidth(typeof props["stroke-width"] === "number" ? props["stroke-width"] : 2); }, [props["stroke-width"]]);
+  useEffect(() => { setLocalLineOpacity(typeof props["stroke-opacity"] === "number" ? props["stroke-opacity"] : 1); }, [props["stroke-opacity"]]);
 
   const wrappedFeatureRef = useRef(wrappedFeature);
   wrappedFeatureRef.current = wrappedFeature;
@@ -582,9 +559,22 @@ function FeatureStylePanelInner({
                 onChange={(c) => updateProps({ stroke: c })}
               />
             </ControlCell>
-            <PropLabel>Line style</PropLabel>
-            <div className="flex items-start justify-end w-full py-0.5">
-              <DashArraySelect
+            <PropLabel>Width</PropLabel>
+            <SliderControl
+              value={localLineWidth}
+              min={0} max={10} step={0.5}
+              display={`${localLineWidth}`}
+              onChange={(v) => { setLocalLineWidth(v); updateProps({ "stroke-width": v }); }}
+            />
+            <PropLabel>Opacity</PropLabel>
+            <SliderControl
+              value={localLineOpacity}
+              min={0} max={1} step={0.05}
+              display={`${Math.round(localLineOpacity * 100)}%`}
+              onChange={(v) => { setLocalLineOpacity(v); updateProps({ "stroke-opacity": v }); }}
+            />
+            <div className="col-span-2">
+              <LineStyleToggle
                 value={typeof props["stroke-dasharray"] === "string" ? props["stroke-dasharray"] : ""}
                 onChange={(v) => updateProps({ "stroke-dasharray": v })}
               />

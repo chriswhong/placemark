@@ -1,4 +1,5 @@
 import { GeoJsonLayer, IconLayer, PolygonLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
+import { PathStyleExtension } from "@deck.gl/extensions";
 import { DECK_ICON_DESCRIPTORS } from "app/lib/icons";
 import {
   pinSvgDataUrl,
@@ -495,10 +496,13 @@ export default class PMap {
         getLineColor: (f: GeoJSON.Feature) => {
           if (selectionIds.has(f.id as RawId)) return SELECTED;
           const props = (f.properties ?? {}) as Record<string, unknown>;
-          return parseColor(
+          const color = parseColor(
             (props["stroke"] as string | undefined) ?? null,
             defaultColor,
           );
+          const opacity = typeof props["stroke-opacity"] === "number" ? props["stroke-opacity"] : 1;
+          color[3] = Math.round(opacity * 255);
+          return color;
         },
         getLineWidth: (f: GeoJSON.Feature) => {
           const props = (f.properties ?? {}) as Record<string, unknown>;
@@ -507,6 +511,22 @@ export default class PMap {
             : 2;
         },
         lineWidthUnits: "pixels" as const,
+        capRounded: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...({
+          getDashArray: (f: GeoJSON.Feature): [number, number] => {
+            const props = (f.properties ?? {}) as Record<string, unknown>;
+            const da = props["stroke-dasharray"];
+            if (typeof da === "string" && da.trim() !== "") {
+              const parts = da.trim().split(/\s+/).map(Number).filter((n) => !isNaN(n));
+              if (parts.length >= 2) return [parts[0], parts[1]];
+              if (parts.length === 1) return [parts[0], parts[0]];
+            }
+            return [0, 0];
+          },
+          dashJustified: true,
+          extensions: [new PathStyleExtension({ dash: true })],
+        } as any),
         getPointRadius: (f: GeoJSON.Feature) => {
           const props = (f.properties ?? {}) as Record<string, unknown>;
           return typeof props["marker-size"] === "number" ? props["marker-size"] : 8;
