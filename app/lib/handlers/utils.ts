@@ -25,7 +25,11 @@ import type {
 } from "types";
 import { env } from "../env_client";
 import { type IDMap, UIDMap } from "../id_mapper";
-import { DECK_FEATURES_ID } from "../load_and_augment_style";
+import {
+  DECK_FEATURES_ID,
+  FEATURES_FILL_LAYER_NAME,
+  FEATURES_LINE_LAYER_NAME,
+} from "../load_and_augment_style";
 import type { IPersistence } from "../persistence/ipersistence";
 import type PMap from "../pmap";
 import { DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID } from "../pmap";
@@ -92,15 +96,39 @@ const getNeighborCandidate = (
     layerIds: [DECK_FEATURES_ID, DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID],
   });
 
-  if (!picks?.length) return null;
+  if (picks?.length) {
+    for (const pick of picks) {
+      const id = pick.object?.id as RawId | undefined;
+      if (id === undefined) continue;
+      const decodedId = decodeId(id);
+      const uuid = UIDMap.getUUID(idMap, decodedId.featureId);
+      if (uuid !== excludeFeatureId) {
+        return uuid;
+      }
+    }
+  }
 
-  for (const pick of picks) {
-    const id = pick.object?.id as RawId | undefined;
-    if (id === undefined) continue;
-    const decodedId = decodeId(id);
-    const uuid = UIDMap.getUUID(idMap, decodedId.featureId);
-    if (uuid !== excludeFeatureId) {
-      return uuid;
+  // Also check mapbox GL line/polygon layers
+  const tolerance = 12;
+  const mapboxSnapLayers = [FEATURES_FILL_LAYER_NAME, FEATURES_LINE_LAYER_NAME].filter(
+    (l) => pmap.map.getLayer(l),
+  );
+  if (mapboxSnapLayers.length) {
+    const mapboxPicks = pmap.map.queryRenderedFeatures(
+      [
+        [point.x - tolerance, point.y - tolerance],
+        [point.x + tolerance, point.y + tolerance],
+      ],
+      { layers: mapboxSnapLayers },
+    );
+    for (const f of mapboxPicks) {
+      if (f.id !== undefined) {
+        const decodedId = decodeId(f.id as RawId);
+        const uuid = UIDMap.getUUID(idMap, decodedId.featureId);
+        if (uuid !== excludeFeatureId) {
+          return uuid;
+        }
+      }
     }
   }
 

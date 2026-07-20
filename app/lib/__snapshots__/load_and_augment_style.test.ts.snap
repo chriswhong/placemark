@@ -5,14 +5,14 @@ exports[`loadAndAugmentStyle 1`] = `
   "glyphs": "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
   "layers": [
     {
-      "id": "placemarkInternalLayer1",
+      "id": "squidmapsInternalLayer1",
       "layout": {
         "visibility": "visible",
       },
       "paint": {
         "raster-opacity": 1,
       },
-      "source": "placemarkInternalSource1",
+      "source": "squidmapsInternalSource1",
       "type": "raster",
     },
     {
@@ -53,6 +53,10 @@ exports[`loadAndAugmentStyle 1`] = `
         ],
       ],
       "id": "features-line",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round",
+      },
       "paint": {
         "line-color": [
           "match",
@@ -63,6 +67,13 @@ exports[`loadAndAugmentStyle 1`] = `
           "selected",
           "#D6409F",
           "#312E81",
+        ],
+        "line-dasharray": [
+          "literal",
+          [
+            1,
+            0,
+          ],
         ],
         "line-opacity": 1,
         "line-width": 2,
@@ -108,6 +119,10 @@ exports[`loadAndAugmentStyle 1`] = `
         ],
       ],
       "id": "ephemeral-line",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round",
+      },
       "paint": {
         "line-color": [
           "match",
@@ -119,95 +134,18 @@ exports[`loadAndAugmentStyle 1`] = `
           "#D6409F",
           "#312E81",
         ],
+        "line-dasharray": [
+          "literal",
+          [
+            1,
+            0,
+          ],
+        ],
         "line-opacity": 1,
         "line-width": 2,
       },
       "source": "ephemeral",
       "type": "line",
-    },
-    {
-      "filter": [
-        "all",
-        [
-          "==",
-          "$type",
-          "Point",
-        ],
-      ],
-      "id": "features-symbol-halo",
-      "layout": {},
-      "paint": {
-        "circle-color": [
-          "match",
-          [
-            "feature-state",
-            "state",
-          ],
-          "selected",
-          "white",
-          "#312E81",
-        ],
-        "circle-radius": [
-          "match",
-          [
-            "feature-state",
-            "state",
-          ],
-          "selected",
-          8,
-          6,
-        ],
-      },
-      "source": "features",
-      "type": "circle",
-    },
-    {
-      "filter": [
-        "all",
-        [
-          "==",
-          "$type",
-          "Point",
-        ],
-      ],
-      "id": "features-symbol",
-      "layout": {},
-      "paint": {
-        "circle-color": [
-          "match",
-          [
-            "feature-state",
-            "state",
-          ],
-          "selected",
-          "white",
-          "#312E81",
-        ],
-        "circle-opacity": 1,
-        "circle-radius": [
-          "match",
-          [
-            "feature-state",
-            "state",
-          ],
-          "selected",
-          6,
-          4,
-        ],
-        "circle-stroke-color": [
-          "match",
-          [
-            "feature-state",
-            "state",
-          ],
-          "selected",
-          "#D6409F",
-          "white",
-        ],
-        "circle-stroke-width": 1,
-      },
-      "source": "features",
-      "type": "circle",
     },
     {
       "filter": [
@@ -254,7 +192,7 @@ exports[`loadAndAugmentStyle 1`] = `
       "tolerance": 0,
       "type": "geojson",
     },
-    "placemarkInternalSource1": {
+    "squidmapsInternalSource1": {
       "scheme": "tms",
       "tileSize": 256,
       "tiles": [
@@ -284,6 +222,13 @@ exports[`makeLayers > categorical 1`] = `
     1,
     "#fff000",
     "#312E81"
+  ],
+  "line-dasharray": [
+    "literal",
+    [
+      1,
+      0
+    ]
   ]
 }",
   },
@@ -435,6 +380,10 @@ exports[`makeLayers > categorical 2`] = `
       ],
     ],
     "id": "features-line",
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     "paint": {
       "line-color": [
         "match",
@@ -453,6 +402,13 @@ exports[`makeLayers > categorical 2`] = `
           1,
           "#fff000",
           "#312E81",
+        ],
+      ],
+      "line-dasharray": [
+        "literal",
+        [
+          1,
+          0,
         ],
       ],
       "line-opacity": 1,
@@ -508,6 +464,10 @@ exports[`makeLayers > categorical 2`] = `
       ],
     ],
     "id": "ephemeral-line",
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     "paint": {
       "line-color": [
         "match",
@@ -528,113 +488,18 @@ exports[`makeLayers > categorical 2`] = `
           "#312E81",
         ],
       ],
+      "line-dasharray": [
+        "literal",
+        [
+          1,
+          0,
+        ],
+      ],
       "line-opacity": 1,
       "line-width": 2,
     },
     "source": "ephemeral",
     "type": "line",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Point",
-      ],
-    ],
-    "id": "features-symbol-halo",
-    "layout": {},
-    "paint": {
-      "circle-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "white",
-        [
-          "match",
-          [
-            "get",
-            "foo",
-          ],
-          1,
-          "#fff000",
-          "#312E81",
-        ],
-      ],
-      "circle-radius": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        8,
-        6,
-      ],
-    },
-    "source": "features",
-    "type": "circle",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Point",
-      ],
-    ],
-    "id": "features-symbol",
-    "layout": {},
-    "paint": {
-      "circle-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "white",
-        [
-          "match",
-          [
-            "get",
-            "foo",
-          ],
-          1,
-          "#fff000",
-          "#312E81",
-        ],
-      ],
-      "circle-opacity": 1,
-      "circle-radius": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        6,
-        4,
-      ],
-      "circle-stroke-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "#D6409F",
-        "white",
-      ],
-      "circle-stroke-width": 1,
-    },
-    "source": "features",
-    "type": "circle",
   },
   {
     "filter": [
@@ -690,6 +555,46 @@ exports[`makeLayers > categorical with override 1`] = `
       1,
       "#fff000",
       "#312E81"
+    ]
+  ],
+  "line-dasharray": [
+    "case",
+    [
+      "==",
+      [
+        "get",
+        "stroke-dasharray"
+      ],
+      "dashed"
+    ],
+    [
+      "literal",
+      [
+        4,
+        5
+      ]
+    ],
+    [
+      "==",
+      [
+        "get",
+        "stroke-dasharray"
+      ],
+      "dotted"
+    ],
+    [
+      "literal",
+      [
+        0,
+        2
+      ]
+    ],
+    [
+      "literal",
+      [
+        1,
+        0
+      ]
     ]
   ]
 }",
@@ -854,6 +759,10 @@ exports[`makeLayers > none 1`] = `
       ],
     ],
     "id": "features-line",
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     "paint": {
       "line-color": [
         "match",
@@ -864,6 +773,13 @@ exports[`makeLayers > none 1`] = `
         "selected",
         "#D6409F",
         "#312E81",
+      ],
+      "line-dasharray": [
+        "literal",
+        [
+          1,
+          0,
+        ],
       ],
       "line-opacity": 1,
       "line-width": 2,
@@ -909,6 +825,10 @@ exports[`makeLayers > none 1`] = `
       ],
     ],
     "id": "ephemeral-line",
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     "paint": {
       "line-color": [
         "match",
@@ -920,95 +840,18 @@ exports[`makeLayers > none 1`] = `
         "#D6409F",
         "#312E81",
       ],
+      "line-dasharray": [
+        "literal",
+        [
+          1,
+          0,
+        ],
+      ],
       "line-opacity": 1,
       "line-width": 2,
     },
     "source": "ephemeral",
     "type": "line",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Point",
-      ],
-    ],
-    "id": "features-symbol-halo",
-    "layout": {},
-    "paint": {
-      "circle-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "white",
-        "#312E81",
-      ],
-      "circle-radius": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        8,
-        6,
-      ],
-    },
-    "source": "features",
-    "type": "circle",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Point",
-      ],
-    ],
-    "id": "features-symbol",
-    "layout": {},
-    "paint": {
-      "circle-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "white",
-        "#312E81",
-      ],
-      "circle-opacity": 1,
-      "circle-radius": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        6,
-        4,
-      ],
-      "circle-stroke-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "#D6409F",
-        "white",
-      ],
-      "circle-stroke-width": 1,
-    },
-    "source": "features",
-    "type": "circle",
   },
   {
     "filter": [
@@ -1093,6 +936,10 @@ exports[`makeLayers > ramp 1`] = `
       ],
     ],
     "id": "features-line",
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     "paint": {
       "line-color": [
         "match",
@@ -1127,6 +974,13 @@ exports[`makeLayers > ramp 1`] = `
             "#fff000",
           ],
           "#312E81",
+        ],
+      ],
+      "line-dasharray": [
+        "literal",
+        [
+          1,
+          0,
         ],
       ],
       "line-opacity": 1,
@@ -1198,6 +1052,10 @@ exports[`makeLayers > ramp 1`] = `
       ],
     ],
     "id": "ephemeral-line",
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     "paint": {
       "line-color": [
         "match",
@@ -1234,145 +1092,18 @@ exports[`makeLayers > ramp 1`] = `
           "#312E81",
         ],
       ],
+      "line-dasharray": [
+        "literal",
+        [
+          1,
+          0,
+        ],
+      ],
       "line-opacity": 1,
       "line-width": 2,
     },
     "source": "ephemeral",
     "type": "line",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Point",
-      ],
-    ],
-    "id": "features-symbol-halo",
-    "layout": {},
-    "paint": {
-      "circle-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "white",
-        [
-          "match",
-          [
-            "typeof",
-            [
-              "get",
-              "foo",
-            ],
-          ],
-          "number",
-          [
-            "interpolate-lab",
-            [
-              "linear",
-            ],
-            [
-              "get",
-              "foo",
-            ],
-            1,
-            "#fff000",
-            10,
-            "#fff000",
-          ],
-          "#312E81",
-        ],
-      ],
-      "circle-radius": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        8,
-        6,
-      ],
-    },
-    "source": "features",
-    "type": "circle",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Point",
-      ],
-    ],
-    "id": "features-symbol",
-    "layout": {},
-    "paint": {
-      "circle-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "white",
-        [
-          "match",
-          [
-            "typeof",
-            [
-              "get",
-              "foo",
-            ],
-          ],
-          "number",
-          [
-            "interpolate-lab",
-            [
-              "linear",
-            ],
-            [
-              "get",
-              "foo",
-            ],
-            1,
-            "#fff000",
-            10,
-            "#fff000",
-          ],
-          "#312E81",
-        ],
-      ],
-      "circle-opacity": 1,
-      "circle-radius": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        6,
-        4,
-      ],
-      "circle-stroke-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "#D6409F",
-        "white",
-      ],
-      "circle-stroke-width": 1,
-    },
-    "source": "features",
-    "type": "circle",
   },
   {
     "filter": [
@@ -1424,6 +1155,13 @@ exports[`makeLayers > ramp 2`] = `
       "#fff000"
     ],
     "#312E81"
+  ],
+  "line-dasharray": [
+    "literal",
+    [
+      1,
+      0
+    ]
   ]
 }",
   },
@@ -1624,6 +1362,10 @@ exports[`makeLayers > with preview property 1`] = `
       ],
     ],
     "id": "features-line",
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     "paint": {
       "line-color": [
         "match",
@@ -1634,6 +1376,13 @@ exports[`makeLayers > with preview property 1`] = `
         "selected",
         "#D6409F",
         "#312E81",
+      ],
+      "line-dasharray": [
+        "literal",
+        [
+          1,
+          0,
+        ],
       ],
       "line-opacity": 1,
       "line-width": 2,
@@ -1679,6 +1428,10 @@ exports[`makeLayers > with preview property 1`] = `
       ],
     ],
     "id": "ephemeral-line",
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     "paint": {
       "line-color": [
         "match",
@@ -1690,95 +1443,18 @@ exports[`makeLayers > with preview property 1`] = `
         "#D6409F",
         "#312E81",
       ],
+      "line-dasharray": [
+        "literal",
+        [
+          1,
+          0,
+        ],
+      ],
       "line-opacity": 1,
       "line-width": 2,
     },
     "source": "ephemeral",
     "type": "line",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Point",
-      ],
-    ],
-    "id": "features-symbol-halo",
-    "layout": {},
-    "paint": {
-      "circle-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "white",
-        "#312E81",
-      ],
-      "circle-radius": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        8,
-        6,
-      ],
-    },
-    "source": "features",
-    "type": "circle",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Point",
-      ],
-    ],
-    "id": "features-symbol",
-    "layout": {},
-    "paint": {
-      "circle-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "white",
-        "#312E81",
-      ],
-      "circle-opacity": 1,
-      "circle-radius": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        6,
-        4,
-      ],
-      "circle-stroke-color": [
-        "match",
-        [
-          "feature-state",
-          "state",
-        ],
-        "selected",
-        "#D6409F",
-        "white",
-      ],
-      "circle-stroke-width": 1,
-    },
-    "source": "features",
-    "type": "circle",
   },
   {
     "filter": [
@@ -1794,134 +1470,6 @@ exports[`makeLayers > with preview property 1`] = `
     },
     "source": "lasso",
     "type": "fill",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "all",
-        [
-          "==",
-          "$type",
-          "Point",
-        ],
-      ],
-      [
-        "has",
-        "foo",
-      ],
-    ],
-    "id": "features-point-label",
-    "layout": {
-      "icon-optional": true,
-      "symbol-placement": "point",
-      "text-field": [
-        "get",
-        "foo",
-      ],
-      "text-justify": "auto",
-      "text-radial-offset": 0.5,
-      "text-size": 13,
-      "text-variable-anchor": [
-        "top",
-        "bottom",
-        "left",
-        "right",
-      ],
-    },
-    "paint": {
-      "text-halo-blur": 0.8,
-      "text-halo-color": "#fff",
-      "text-halo-width": 1,
-    },
-    "source": "features",
-    "type": "symbol",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "any",
-        [
-          "==",
-          "$type",
-          "LineString",
-        ],
-        [
-          "==",
-          "$type",
-          "Polygon",
-        ],
-      ],
-      [
-        "has",
-        "foo",
-      ],
-    ],
-    "id": "features-line-label",
-    "layout": {
-      "icon-optional": true,
-      "symbol-placement": "line",
-      "text-field": [
-        "get",
-        "foo",
-      ],
-      "text-justify": "auto",
-      "text-radial-offset": 0.5,
-      "text-size": 13,
-      "text-variable-anchor": [
-        "top",
-        "bottom",
-        "left",
-        "right",
-      ],
-    },
-    "paint": {
-      "text-halo-blur": 0.8,
-      "text-halo-color": "#fff",
-      "text-halo-width": 1,
-    },
-    "source": "features",
-    "type": "symbol",
-  },
-  {
-    "filter": [
-      "all",
-      [
-        "==",
-        "$type",
-        "Polygon",
-      ],
-      [
-        "has",
-        "foo",
-      ],
-    ],
-    "id": "features-fill-label",
-    "layout": {
-      "icon-optional": true,
-      "symbol-placement": "point",
-      "text-field": [
-        "get",
-        "foo",
-      ],
-      "text-justify": "auto",
-      "text-radial-offset": 0.5,
-      "text-size": 13,
-      "text-variable-anchor": [
-        "top",
-        "bottom",
-        "left",
-        "right",
-      ],
-    },
-    "paint": {
-      "text-halo-blur": 0.8,
-      "text-halo-color": "#fff",
-      "text-halo-width": 1,
-    },
-    "source": "features",
-    "type": "symbol",
   },
 ]
 `;

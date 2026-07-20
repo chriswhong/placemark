@@ -4,6 +4,10 @@ import { decodeId } from "app/lib/id";
 import {
   DECK_EPHEMERAL_ID,
   DECK_FEATURES_ID,
+  FEATURES_FILL_LAYER_NAME,
+  FEATURES_LINE_LAYER_NAME,
+  EPHEMERAL_FILL_LAYER_NAME,
+  EPHEMERAL_LINE_LAYER_NAME,
 } from "app/lib/load_and_augment_style";
 import { DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID } from "app/lib/pmap";
 import type PMap from "app/lib/pmap";
@@ -151,6 +155,30 @@ export function fuzzyClick(
     if (deckFeatureMultiPick) {
       for (const info of deckFeatureMultiPick) {
         ids.push(info.object.id as RawId);
+      }
+    }
+  }
+
+  // Query mapbox GL for line/polygon features (now rendered as mapbox layers)
+  const PICK_TOLERANCE = 8;
+  const pt = e.point;
+  const mapboxQueryLayers = [
+    FEATURES_FILL_LAYER_NAME,
+    FEATURES_LINE_LAYER_NAME,
+    EPHEMERAL_FILL_LAYER_NAME,
+    EPHEMERAL_LINE_LAYER_NAME,
+  ].filter((l) => pmap.map.getLayer(l));
+  if (mapboxQueryLayers.length) {
+    const mapboxFeatures = pmap.map.queryRenderedFeatures(
+      [
+        [pt.x - PICK_TOLERANCE, pt.y - PICK_TOLERANCE],
+        [pt.x + PICK_TOLERANCE, pt.y + PICK_TOLERANCE],
+      ],
+      { layers: mapboxQueryLayers },
+    );
+    for (const f of mapboxFeatures) {
+      if (f.id !== undefined) {
+        ids.push(f.id as RawId);
       }
     }
   }

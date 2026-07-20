@@ -220,10 +220,12 @@ export const MapComponent = memo(function MapComponent({
   const throttledMovePointer = useMemo(() => {
     function fastMovePointer(point: mapboxgl.Point) {
       if (!map) return;
-      const features = map.map.queryRenderedFeatures(point, {
-        layers: CLICKABLE_LAYERS,
-      });
       try {
+        const features = CLICKABLE_LAYERS.length
+          ? map.map.queryRenderedFeatures(point, {
+              layers: CLICKABLE_LAYERS.filter((l) => map.map.getLayer(l)),
+            })
+          : [];
         const syntheticUnderCursor = map.overlay.pickObject({
           ...point,
           layerIds: [DECK_SYNTHETIC_ID],
@@ -243,9 +245,7 @@ export const MapComponent = memo(function MapComponent({
         }
         setCursor(syntheticUnderCursor || selectedSpecialMarkerUnderCursor || features.length ? "move" : "");
       } catch (_e) {
-        // Deck can throw here if it's just been initialized
-        // or uninitialized.
-        // console.error(e);
+        // Deck or mapbox can throw during initialization/style transitions.
       }
     }
     return fastMovePointer;
@@ -357,12 +357,13 @@ export const MapComponent = memo(function MapComponent({
         const mapDivBox = mapDivRef.current?.getBoundingClientRect();
         const map = mapRef.current;
         if (mapDivBox && map) {
-          const featureUnderMouse = map.map.queryRenderedFeatures(
-            [event.pageX - mapDivBox.left, event.pageY - mapDivBox.top],
-            {
-              layers: CLICKABLE_LAYERS,
-            },
-          );
+          const availableLayers = CLICKABLE_LAYERS.filter((l) => map.map.getLayer(l));
+          const featureUnderMouse = availableLayers.length
+            ? map.map.queryRenderedFeatures(
+                [event.pageX - mapDivBox.left, event.pageY - mapDivBox.top],
+                { layers: availableLayers },
+              )
+            : [];
 
           const position = map.map
             .unproject([

@@ -1,5 +1,4 @@
 import { GeoJsonLayer, IconLayer, PolygonLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
-import { PathStyleExtension } from "@deck.gl/extensions";
 import { DECK_ICON_DESCRIPTORS } from "app/lib/icons";
 import {
   pinSvgDataUrl,
@@ -33,6 +32,8 @@ import type { IDMap } from "app/lib/id_mapper";
 import loadAndAugmentStyle, {
   DECK_EPHEMERAL_ID,
   DECK_FEATURES_ID,
+  FEATURES_SOURCE_NAME,
+  EPHEMERAL_SOURCE_NAME,
   LASSO_SOURCE_NAME,
 } from "app/lib/load_and_augment_style";
 import * as d3 from "d3-color";
@@ -212,6 +213,7 @@ export default class PMap {
   emojiMapping: EmojiIconMapping | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lastDeckLayers: any[] = [];
+  lastMapboxSelectionIds: Set<RawId> = new Set();
 
   constructor({
     element,
@@ -458,6 +460,41 @@ export default class PMap {
       255,
     ];
 
+    // Separate line/polygon features for mapbox GL rendering
+    const LINE_POLY_TYPES = new Set([
+      "LineString", "MultiLineString", "Polygon", "MultiPolygon",
+    ]);
+    const isLineOrPoly = (f: Feature) =>
+      LINE_POLY_TYPES.has(f.geometry?.type ?? "");
+
+    // Push line/polygon features to mapbox GL sources
+    const featuresSource = this.map.getSource(FEATURES_SOURCE_NAME) as mapboxgl.GeoJSONSource | undefined;
+    const ephemeralSource = this.map.getSource(EPHEMERAL_SOURCE_NAME) as mapboxgl.GeoJSONSource | undefined;
+
+    if (featuresSource) {
+      mSetData(featuresSource, groups.features.filter(isLineOrPoly), "mapbox-features", force);
+    }
+    if (ephemeralSource) {
+      mSetData(ephemeralSource, groups.ephemeral.filter(isLineOrPoly), "mapbox-ephemeral", force);
+    }
+
+    // Sync feature-state for selection (highlight selected features in mapbox GL)
+    try {
+      for (const id of this.lastMapboxSelectionIds) {
+        this.map.removeFeatureState({ source: FEATURES_SOURCE_NAME, id }, "state");
+      }
+      for (const id of groups.selectionIds) {
+        this.map.setFeatureState(
+          { source: FEATURES_SOURCE_NAME, id },
+          { state: "selected" },
+        );
+      }
+    } catch (_e) {
+      // Feature-state updates may fail if the source isn't fully loaded yet;
+      // don't let this block deck.gl layer updates.
+    }
+    this.lastMapboxSelectionIds = groups.selectionIds;
+
     const makeGeoJsonLayer = (
       id: string,
       features: Feature[],
@@ -511,21 +548,6 @@ export default class PMap {
             : 2;
         },
         lineWidthUnits: "pixels" as const,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...({
-          getDashArray: (f: GeoJSON.Feature): [number, number] => {
-            const props = (f.properties ?? {}) as Record<string, unknown>;
-            const da = props["stroke-dasharray"];
-            if (typeof da === "string" && da.trim() !== "") {
-              const parts = da.trim().split(/\s+/).map(Number).filter((n) => !isNaN(n));
-              if (parts.length >= 2) return [parts[0], parts[1]];
-              if (parts.length === 1) return [parts[0], parts[0]];
-            }
-            return [0, 0];
-          },
-          dashJustified: true,
-          extensions: [new PathStyleExtension({ dash: true })],
-        } as any),
         getPointRadius: (f: GeoJSON.Feature) => {
           const props = (f.properties ?? {}) as Record<string, unknown>;
           return typeof props["marker-size"] === "number" ? props["marker-size"] : 8;
@@ -538,16 +560,18 @@ export default class PMap {
         },
       });
 
-    // Split point features so pin and emoji markers are rendered by their own layers
-    const nonSpecialFeatures = groups.features.filter((f) => !isPinFeature(f) && !isEmojiFeature(f));
-    const nonSpecialEphemeral = groups.ephemeral.filter((f) => !isPinFeature(f) && !isEmojiFeature(f));
+    // Only point features go to deck.gl; line/polygon features are rendered by mapbox GL.
+    const pointFeatures = groups.features.filter((f) => !isLineOrPoly(f));
+    const pointEphemeral = groups.ephemeral.filter((f) => !isLineOrPoly(f));
+    const nonSpecialFeatures = pointFeatures.filter((f) => !isPinFeature(f) && !isEmojiFeature(f));
+    const nonSpecialEphemeral = pointEphemeral.filter((f) => !isPinFeature(f) && !isEmojiFeature(f));
     const allPinFeatures = [
-      ...groups.features.filter(isPinFeature),
-      ...groups.ephemeral.filter(isPinFeature),
+      ...pointFeatures.filter(isPinFeature),
+      ...pointEphemeral.filter(isPinFeature),
     ] as GeoJSON.Feature[];
     const allEmojiFeatures = [
-      ...groups.features.filter(isEmojiFeature),
-      ...groups.ephemeral.filter(isEmojiFeature),
+      ...pointFeatures.filter(isEmojiFeature),
+      ...pointEphemeral.filter(isEmojiFeature),
     ] as GeoJSON.Feature[];
 
     // Compute selection outline polygon in screen space, then unproject to lng/lat
@@ -663,7 +687,7 @@ export default class PMap {
         })(),
         new IconLayer<GeoJSON.Feature>({
           id: DECK_POINT_ICONS_ID,
-          data: [...groups.features, ...groups.ephemeral].filter(
+          data: [...pointFeatures, ...pointEphemeral].filter(
             (f) =>
               f.geometry?.type === "Point" &&
               f.properties?.["marker-type"] !== "pin" &&
@@ -697,7 +721,7 @@ export default class PMap {
         }),
         new TextLayer<GeoJSON.Feature>({
           id: DECK_POINT_LABELS_ID,
-          data: [...groups.features, ...groups.ephemeral].filter(
+          data: [...pointFeatures, ...pointEphemeral].filter(
             (f) =>
               f.geometry?.type === "Point" &&
               typeof f.properties?.name === "string" &&

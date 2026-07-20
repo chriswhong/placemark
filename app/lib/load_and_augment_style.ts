@@ -35,16 +35,16 @@ export const EPHEMERAL_SOURCE_NAME = "ephemeral";
 export const DECK_FEATURES_ID = "features-deck";
 export const DECK_EPHEMERAL_ID = "ephemeral-deck";
 
-const EPHEMERAL_LINE_LAYER_NAME = "ephemeral-line";
-const EPHEMERAL_FILL_LAYER_NAME = "ephemeral-fill";
+export const EPHEMERAL_LINE_LAYER_NAME = "ephemeral-line";
+export const EPHEMERAL_FILL_LAYER_NAME = "ephemeral-fill";
 
 const FEATURES_POINT_HALO_LAYER_NAME = "features-symbol-halo";
 const FEATURES_POINT_LAYER_NAME = "features-symbol";
 const FEATURES_POINT_LABEL_LAYER_NAME = "features-point-label";
 const FEATURES_FILL_LABEL_LAYER_NAME = "features-fill-label";
 const FEATURES_LINE_LABEL_LAYER_NAME = "features-line-label";
-const FEATURES_LINE_LAYER_NAME = "features-line";
-const FEATURES_FILL_LAYER_NAME = "features-fill";
+export const FEATURES_LINE_LAYER_NAME = "features-line";
+export const FEATURES_FILL_LAYER_NAME = "features-fill";
 const LASSO_LAYER_NAME = "lasso-layer";
 
 const emptyGeoJSONSource = {
@@ -122,8 +122,9 @@ export function addEditingLayers({
   symbolization: ISymbolization;
   previewProperty: PreviewProperty;
 }) {
-  // Only add the lasso source; features and ephemeral are rendered by DeckGL.
   style.sources[LASSO_SOURCE_NAME] = emptyGeoJSONSource;
+  style.sources[FEATURES_SOURCE_NAME] = emptyGeoJSONSource;
+  style.sources[EPHEMERAL_SOURCE_NAME] = emptyGeoJSONSource;
 
   if (!style.layers) {
     throw new Error("Style unexpectedly had no layers");
@@ -135,14 +136,53 @@ export function addEditingLayers({
 }
 
 export function makeLayers({
-  symbolization: _symbolization,
+  symbolization,
   previewProperty: _previewProperty,
 }: {
   symbolization: ISymbolization;
   previewProperty: PreviewProperty;
 }): mapboxgl.AnyLayer[] {
+  const lineLayout: mapboxgl.LineLayout = {
+    "line-cap": "round",
+    "line-join": "round",
+  };
+
   return [
-    // The lasso selection box. Features are rendered by DeckGL GeoJsonLayer.
+    // Polygon fill for main features
+    {
+      id: FEATURES_FILL_LAYER_NAME,
+      type: "fill",
+      source: FEATURES_SOURCE_NAME,
+      filter: ["==", "$type", "Polygon"],
+      paint: FILL_PAINT(symbolization),
+    },
+    // Line/outline for main features (linestrings and polygon outlines)
+    {
+      id: FEATURES_LINE_LAYER_NAME,
+      type: "line",
+      source: FEATURES_SOURCE_NAME,
+      filter: ["any", ["==", "$type", "LineString"], ["==", "$type", "Polygon"]],
+      layout: lineLayout,
+      paint: LINE_PAINT(symbolization),
+    },
+    // Polygon fill for ephemeral (currently-edited) feature
+    {
+      id: EPHEMERAL_FILL_LAYER_NAME,
+      type: "fill",
+      source: EPHEMERAL_SOURCE_NAME,
+      filter: ["==", "$type", "Polygon"],
+      paint: FILL_PAINT(symbolization),
+    },
+    // Line/outline for ephemeral feature
+    {
+      id: EPHEMERAL_LINE_LAYER_NAME,
+      type: "line",
+      source: EPHEMERAL_SOURCE_NAME,
+      filter: ["any", ["==", "$type", "LineString"], ["==", "$type", "Polygon"]],
+      layout: lineLayout,
+      paint: LINE_PAINT(symbolization),
+    },
+    // The lasso selection box.
     {
       id: LASSO_LAYER_NAME,
       type: "fill",
@@ -374,8 +414,22 @@ export function LINE_PAINT(
       exp,
       LINE_COLORS_SELECTED,
     ),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    "line-dasharray": (symbolization.simplestyle
+      ? [
+          "case",
+          ["==", ["get", "stroke-dasharray"], "8 4"], ["literal", [4, 5]],
+          ["==", ["get", "stroke-dasharray"], "2 2"], ["literal", [0, 2]],
+          ["literal", [1, 0]],
+        ]
+      : ["literal", [1, 0]]) as any,
   };
 }
 
-// CLICKABLE_LAYERS is now empty: feature picking is handled by DeckGL.
-export const CLICKABLE_LAYERS: string[] = [];
+// Mapbox GL layers that contain user features (lines and polygons).
+export const CLICKABLE_LAYERS: string[] = [
+  FEATURES_FILL_LAYER_NAME,
+  FEATURES_LINE_LAYER_NAME,
+  EPHEMERAL_FILL_LAYER_NAME,
+  EPHEMERAL_LINE_LAYER_NAME,
+];
