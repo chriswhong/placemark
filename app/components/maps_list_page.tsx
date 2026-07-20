@@ -8,6 +8,7 @@ interface MapRecord {
   title: string;
   created_at: string;
   updated_at: string;
+  has_thumbnail: boolean;
 }
 
 interface MapsListPageProps {
@@ -42,7 +43,19 @@ function TrashIcon() {
   );
 }
 
-function MapThumbnail() {
+function MapThumbnail({ slug, hasThumbnail }: { slug: string; hasThumbnail: boolean }) {
+  if (hasThumbnail) {
+    return (
+      <div className="w-full h-[120px] rounded-t-[14px] overflow-hidden bg-[#dce9e5]">
+        <img
+          src={`/api/maps/${slug}/thumbnail`}
+          alt=""
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
   return (
     <div
       className="w-full h-[120px] rounded-t-[14px]"
@@ -230,7 +243,7 @@ export function MapsListPage({ username }: MapsListPageProps) {
                   style={{ boxShadow: "0 2px 16px rgba(18,49,44,0.08)" }}
                 >
                   <a href={`/@${username}/${map.slug}`} className="block">
-                    <MapThumbnail />
+                    <MapThumbnail slug={map.slug} hasThumbnail={map.has_thumbnail} />
                     <div className="px-4 py-3">
                       <div className="font-extrabold text-[#12312c] text-sm truncate">
                         {map.title}

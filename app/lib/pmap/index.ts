@@ -121,6 +121,7 @@ const MAP_OPTIONS: Omit<mapboxgl.MapboxOptions, "container"> = {
   dragRotate: false,
   attributionControl: false,
   fadeDuration: 0,
+  preserveDrawingBuffer: true,
 };
 
 const cursorSvg = (color: string) => {
@@ -930,5 +931,53 @@ export default class PMap {
       });
       this.lastSelection = { type: "none" };
     }
+  }
+
+  /**
+   * Capture the current map view as a JPEG thumbnail blob.
+   * Composites the mapbox GL canvas with any deck.gl overlay canvases.
+   */
+  captureThumbnail(width = 480, height = 320): Promise<Blob | null> {
+    return new Promise((resolve) => {
+      try {
+        const mapCanvas = this.map.getCanvas();
+        const container = mapCanvas.parentElement;
+        if (!container) {
+          resolve(null);
+          return;
+        }
+
+        const offscreen = document.createElement("canvas");
+        offscreen.width = width;
+        offscreen.height = height;
+        const ctx = offscreen.getContext("2d");
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+
+        // Draw the mapbox GL canvas (basemap + line/polygon layers)
+        ctx.drawImage(mapCanvas, 0, 0, width, height);
+
+        // Overlay deck.gl canvases (points, icons, labels)
+        const deckCanvases = container.querySelectorAll("canvas");
+        for (const c of deckCanvases) {
+          if (c === mapCanvas) continue;
+          try {
+            ctx.drawImage(c, 0, 0, width, height);
+          } catch {
+            // cross-origin or tainted canvas — skip
+          }
+        }
+
+        offscreen.toBlob(
+          (blob) => resolve(blob),
+          "image/jpeg",
+          0.85,
+        );
+      } catch {
+        resolve(null);
+      }
+    });
   }
 }

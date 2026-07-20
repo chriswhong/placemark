@@ -15,7 +15,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronLeftIcon } from "@radix-ui/react-icons";
 import { Tooltip as T } from "radix-ui";
 import { TContent, StyledTooltipArrow } from "./elements";
-import { Suspense, useContext, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { dialogAtom, selectedFeaturesAtom } from "state/jotai";
 import { match } from "ts-pattern";
@@ -145,8 +145,28 @@ function DebugPanel() {
 }
 
 
+async function captureAndUploadThumbnail(pmap: PMap | null, mapSlug: string) {
+  if (!pmap) return;
+  try {
+    const blob = await pmap.captureThumbnail();
+    if (!blob) return;
+    await fetch(`/api/maps/${mapSlug}/thumbnail`, {
+      method: "PUT",
+      headers: { "Content-Type": "image/jpeg" },
+      body: blob,
+    });
+  } catch {
+    // Thumbnail upload is best-effort; don't block navigation
+  }
+}
+
 export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
   const [map, setMap] = useState<PMap | null>(null);
+
+  const handleBackToMaps = useCallback(async () => {
+    await captureAndUploadThumbnail(map, mapSlug);
+    window.location.href = `/@${username}`;
+  }, [map, mapSlug, username]);
 
   return (
     <main className="h-screen flex flex-col">
@@ -173,12 +193,12 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
               <div className="flex items-center gap-x-2 px-3 py-2.5 border-b border-[#dde6e2] shrink-0">
                 <T.Root delayDuration={300}>
                   <T.Trigger asChild>
-                    <a
-                      href={`/@${username}`}
+                    <button
+                      onClick={handleBackToMaps}
                       className="text-[#8fa8a2] hover:text-[#12312c] transition-colors shrink-0"
                     >
                       <ChevronLeftIcon className="w-5 h-5" />
-                    </a>
+                    </button>
                   </T.Trigger>
                   <T.Portal>
                     <TContent side="right">

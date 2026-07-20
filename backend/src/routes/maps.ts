@@ -37,7 +37,7 @@ export async function mapsRoutes(fastify: FastifyInstance) {
   // GET /api/maps — list all maps for the current user
   fastify.get("/maps", async (req) => {
     const maps = await sql<Row[]>`
-      SELECT id, slug, title, created_at, updated_at
+      SELECT id, slug, title, created_at, updated_at, (thumbnail IS NOT NULL) AS has_thumbnail
       FROM maps
       WHERE user_id = ${req.userId}
       ORDER BY updated_at DESC

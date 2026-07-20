@@ -24,6 +24,15 @@ server.addContentTypeParser(
   },
 );
 
+// Allow image/jpeg bodies to pass through raw (thumbnail upload)
+server.addContentTypeParser(
+  "image/jpeg",
+  { parseAs: "buffer" },
+  (_req, body, done) => {
+    done(null, body);
+  },
+);
+
 // Auth: decorate every request with userId / username
 await server.register(authPlugin);
 

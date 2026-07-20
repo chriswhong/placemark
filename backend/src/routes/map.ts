@@ -132,4 +132,48 @@ export async function mapRoutes(fastify: FastifyInstance) {
       return { ok: true };
     },
   );
+
+  // Upload a map thumbnail (JPEG blob)
+  fastify.put<{ Params: { mapSlug: string } }>(
+    "/maps/:mapSlug/thumbnail",
+    async (req, reply) => {
+      const mapId = await getMapId(req.userId, req.params.mapSlug);
+      if (!mapId) return reply.status(404).send({ error: "Map not found" });
+
+      const buffer = req.body as Buffer;
+
+      if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+        return reply.status(400).send({ error: "Empty body" });
+      }
+      if (buffer.length > 512 * 1024) {
+        return reply.status(413).send({ error: "Thumbnail too large (max 512KB)" });
+      }
+
+      await sql`
+        UPDATE maps SET thumbnail = ${buffer}, updated_at = now()
+        WHERE id = ${mapId}
+      `;
+      return { ok: true };
+    },
+  );
+
+  // Serve a map thumbnail
+  fastify.get<{ Params: { mapSlug: string } }>(
+    "/maps/:mapSlug/thumbnail",
+    async (req, reply) => {
+      const mapId = await getMapId(req.userId, req.params.mapSlug);
+      if (!mapId) return reply.status(404).send({ error: "Map not found" });
+
+      const rows = await sql<Row[]>`
+        SELECT thumbnail FROM maps WHERE id = ${mapId} LIMIT 1
+      `;
+      const thumb = rows[0]?.thumbnail;
+      if (!thumb) return reply.status(404).send({ error: "No thumbnail" });
+
+      return reply
+        .header("Content-Type", "image/jpeg")
+        .header("Cache-Control", "public, max-age=300")
+        .send(thumb);
+    },
+  );
 }
