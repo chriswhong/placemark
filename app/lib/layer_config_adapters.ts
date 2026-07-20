@@ -98,10 +98,15 @@ function updateMapboxStyle(
     })
     .filter(Boolean) as mapboxgl.AnyLayer[];
 
+  // Strip globe projection and fog from v11 styles so that deck.gl uses
+  // a flat mercator view.  Globe projection causes back-face culling that
+  // hides flat icon quads (pins, emojis) rendered by deck.gl IconLayer.
+  const { projection: _p, fog: _f, ...rest } = style as Record<string, unknown>;
+
   return {
-    ...style,
+    ...rest,
     layers: updatedLayers,
-  };
+  } as mapboxgl.Style;
 }
 function paintLayoutFromRasterLayer(
   layer: ILayerConfig,
