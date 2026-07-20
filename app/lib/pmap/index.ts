@@ -222,6 +222,23 @@ function buildDashExpression(
 }
 
 /**
+ * Get the effective marker radius (in pixels) for a point feature,
+ * used to offset the label from the marker edge.
+ */
+function getMarkerRadius(f: GeoJSON.Feature): number {
+  const props = f.properties ?? {};
+  if (props["marker-type"] === "pin") {
+    const h = typeof props["pin-size"] === "number" ? props["pin-size"] : DEFAULT_PIN_SIZE;
+    return h * PIN_HALF_WIDTH_FRACTION;
+  }
+  if (props["marker-type"] === "emoji") {
+    const s = typeof props["emoji-size"] === "number" ? props["emoji-size"] : DEFAULT_EMOJI_SIZE;
+    return s / 2;
+  }
+  return typeof props["marker-size"] === "number" ? props["marker-size"] : 8;
+}
+
+/**
  * Parse a CSS/hex color string into a DeckGL RGBA array [r, g, b, a].
  */
 function parseColor(
@@ -784,7 +801,8 @@ export default class PMap {
             (f) =>
               f.geometry?.type === "Point" &&
               typeof f.properties?.name === "string" &&
-              (f.properties.name as string).length > 0,
+              (f.properties.name as string).length > 0 &&
+              f.properties?.["name-anchor"] !== "none",
           ),
           pickable: false,
           getPosition: (f) =>
@@ -801,24 +819,44 @@ export default class PMap {
           outlineColor: [255, 255, 255, 200],
           background: false,
           getPixelOffset: (f: GeoJSON.Feature) => {
-            if (f.properties?.["marker-type"] === "pin") {
-              const h =
-                typeof f.properties?.["pin-size"] === "number"
-                  ? f.properties["pin-size"]
-                  : DEFAULT_PIN_SIZE;
-              return [
-                h * PIN_HALF_WIDTH_FRACTION + 6,
-                -(h * PIN_INNER_CENTER_ABOVE_TIP_FRACTION),
-              ];
+            const anchor = (f.properties?.["name-anchor"] as string) || "right";
+            const markerRadius = getMarkerRadius(f);
+            const gap = 6;
+            switch (anchor) {
+              case "left":
+                return [-(markerRadius + gap), 0];
+              case "bottom":
+                return [0, markerRadius + gap];
+              default: // "right"
+                return [markerRadius + gap, 0];
             }
-            const r =
-              typeof f.properties?.["marker-size"] === "number"
-                ? f.properties["marker-size"]
-                : 8;
-            return [r + 6, 0];
           },
-          getTextAnchor: "start",
-          getAlignmentBaseline: "center",
+          getTextAnchor: (f: GeoJSON.Feature) => {
+            const anchor = (f.properties?.["name-anchor"] as string) || "right";
+            switch (anchor) {
+              case "left":
+                return "end";
+              case "bottom":
+                return "middle";
+              default:
+                return "start";
+            }
+          },
+          getAlignmentBaseline: (f: GeoJSON.Feature) => {
+            const anchor = (f.properties?.["name-anchor"] as string) || "right";
+            return anchor === "bottom" ? "top" : "center";
+          },
+          updateTriggers: {
+            getPixelOffset: [...pointFeatures, ...pointEphemeral].map(
+              (f) => `${f.id}:${f.properties?.["name-anchor"]}:${f.properties?.["marker-size"]}:${f.properties?.["pin-size"]}:${f.properties?.["emoji-size"]}`,
+            ),
+            getTextAnchor: [...pointFeatures, ...pointEphemeral].map(
+              (f) => `${f.id}:${f.properties?.["name-anchor"]}`,
+            ),
+            getAlignmentBaseline: [...pointFeatures, ...pointEphemeral].map(
+              (f) => `${f.id}:${f.properties?.["name-anchor"]}`,
+            ),
+          },
         }),
     ];
 

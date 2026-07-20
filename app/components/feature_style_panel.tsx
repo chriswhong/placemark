@@ -341,6 +341,100 @@ function ControlCell({ children }: { children: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
+// Name anchor popover — controls label placement for point features
+// ---------------------------------------------------------------------------
+
+const NAME_ANCHORS = [
+  {
+    label: "Right",
+    value: "right",
+    icon: (active: boolean) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" className={active ? "text-purple-600" : "text-gray-400"}>
+        <circle cx="6" cy="8" r="3" fill="currentColor" />
+        <line x1="10" y1="7" x2="15" y2="7" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+        <line x1="10" y1="9.5" x2="14" y2="9.5" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "Left",
+    value: "left",
+    icon: (active: boolean) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" className={active ? "text-purple-600" : "text-gray-400"}>
+        <circle cx="10" cy="8" r="3" fill="currentColor" />
+        <line x1="1" y1="7" x2="6" y2="7" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+        <line x1="2" y1="9.5" x2="6" y2="9.5" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "Bottom",
+    value: "bottom",
+    icon: (active: boolean) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" className={active ? "text-purple-600" : "text-gray-400"}>
+        <circle cx="8" cy="5" r="3" fill="currentColor" />
+        <line x1="5" y1="11" x2="11" y2="11" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+        <line x1="6" y1="13.5" x2="10" y2="13.5" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "None",
+    value: "none",
+    icon: (active: boolean) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" className={active ? "text-purple-600" : "text-gray-400"}>
+        <circle cx="8" cy="8" r="3" fill="currentColor" />
+        <line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+      </svg>
+    ),
+  },
+] as const;
+
+function nameAnchorLabel(value: string): string {
+  return NAME_ANCHORS.find((a) => a.value === value)?.label ?? "Right";
+}
+
+function NameAnchorPopover({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const current = NAME_ANCHORS.find((a) => a.value === value) ?? NAME_ANCHORS[0];
+
+  return (
+    <P.Root>
+      <P.Trigger asChild>
+        <button className="flex items-center gap-1 rounded border border-gray-200 dark:border-gray-700 hover:border-gray-400 transition-colors px-1.5 h-5 text-gray-600 dark:text-gray-300">
+          {current.icon(false)}
+          <span className="text-[10px]">{current.label}</span>
+        </button>
+      </P.Trigger>
+      <PopoverContent2 size="no-width">
+        <div className="flex flex-col gap-0.5 p-1.5" style={{ width: 140 }}>
+          {NAME_ANCHORS.map((anchor) => (
+            <P.Close asChild key={anchor.value}>
+              <button
+                onClick={() => onChange(anchor.value)}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors ${
+                  value === anchor.value
+                    ? "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                    : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                {anchor.icon(value === anchor.value)}
+                <span>{anchor.label}</span>
+              </button>
+            </P.Close>
+          ))}
+        </div>
+      </PopoverContent2>
+    </P.Root>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Dash pattern popover — trigger shows line preview + label, popover has presets + custom input
 // ---------------------------------------------------------------------------
 
@@ -552,6 +646,19 @@ function FeatureStylePanelInner({
           className={inputClass({ _size: "sm" }) + " w-full"}
         />
       </div>
+
+      {/* Label anchor for point features */}
+      {isPoint && (
+        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
+          <PropLabel>Show name</PropLabel>
+          <ControlCell>
+            <NameAnchorPopover
+              value={typeof props["name-anchor"] === "string" ? props["name-anchor"] : "right"}
+              onChange={(v) => setProps({ "name-anchor": v })}
+            />
+          </ControlCell>
+        </div>
+      )}
 
       {/* Description */}
       <textarea
