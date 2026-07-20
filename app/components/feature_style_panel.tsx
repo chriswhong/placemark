@@ -72,7 +72,7 @@ function SliderControl({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 w-full h-7 min-w-0">
+    <div className="flex items-center gap-1 w-full h-5 min-w-0">
       <input
         type="range"
         min={min}
@@ -80,12 +80,61 @@ function SliderControl({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1 min-w-0 accent-purple-600"
+        className="flex-1 min-w-0 accent-purple-600 h-3"
       />
-      <span className="text-xs text-gray-500 dark:text-gray-400 w-9 text-right shrink-0">
+      <span className="text-[10px] text-gray-500 dark:text-gray-400 w-7 text-right shrink-0">
         {display}
       </span>
     </div>
+  );
+}
+
+function SliderPopover({
+  value,
+  min,
+  max,
+  step,
+  display,
+  onChange,
+  icon,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  display: string;
+  onChange: (v: number) => void;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <P.Root>
+      <P.Trigger asChild>
+        <button className="flex items-center gap-1 rounded border border-gray-200 dark:border-gray-700 hover:border-gray-400 transition-colors px-1.5 h-5 shrink-0">
+          {icon ?? (
+            <svg width="10" height="10" viewBox="0 0 10 10" className="text-gray-500 dark:text-gray-400">
+              <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+            </svg>
+          )}
+          <span className="text-[10px] text-gray-600 dark:text-gray-300">{display}</span>
+        </button>
+      </P.Trigger>
+      <PopoverContent2 size="no-width">
+        <div className="flex items-center gap-2 p-2" style={{ width: 180 }}>
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="flex-1 min-w-0 accent-purple-600"
+          />
+          <span className="text-xs text-gray-500 dark:text-gray-400 w-8 text-right shrink-0">
+            {display}
+          </span>
+        </div>
+      </PopoverContent2>
+    </P.Root>
   );
 }
 
@@ -292,40 +341,106 @@ function ControlCell({ children }: { children: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Line style toggle — solid / dashed / dotted
+// Dash pattern popover — trigger shows line preview + label, popover has presets + custom input
 // ---------------------------------------------------------------------------
 
-const LINE_STYLES = [
-  { label: "Solid", value: "" },
-  { label: "Dashed", value: "8 4" },
-  { label: "Dotted", value: "2 2" },
+const DASH_PRESETS = [
+  { label: "Solid", value: "", dasharray: "none" },
+  { label: "Dashed", value: "8 4", dasharray: "8 4" },
+  { label: "Dotted", value: "2 2", dasharray: "2 2" },
 ] as const;
 
-function LineStyleToggle({
+function dashLabel(value: string): string {
+  const preset = DASH_PRESETS.find((p) => p.value === value);
+  return preset?.label ?? value;
+}
+
+function DashPreviewLine({ dasharray, className }: { dasharray: string; className?: string }) {
+  return (
+    <svg width="32" height="6" viewBox="0 0 32 6" className={className}>
+      <line
+        x1="1" y1="3" x2="31" y2="3"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeDasharray={dasharray === "none" ? undefined : dasharray}
+      />
+    </svg>
+  );
+}
+
+function DashPopover({
   value,
   onChange,
 }: {
   value: string;
   onChange: (v: string) => void;
 }) {
+  const [customValue, setCustomValue] = useState(value);
+
+  useEffect(() => { setCustomValue(value); }, [value]);
+
+  const isPreset = DASH_PRESETS.some((p) => p.value === value);
+
   return (
-    <div className="flex rounded overflow-hidden border border-gray-200 dark:border-gray-700 w-full">
-      {LINE_STYLES.map((opt, i) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={`flex-1 text-xs py-1 transition-colors ${
-            i > 0 ? "border-l border-gray-200 dark:border-gray-700" : ""
-          } ${
-            value === opt.value
-              ? "bg-[#1f7a6c] text-white"
-              : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-          }`}
-        >
-          {opt.label}
+    <P.Root>
+      <P.Trigger asChild>
+        <button className="flex items-center gap-1 rounded border border-gray-200 dark:border-gray-700 hover:border-gray-400 transition-colors px-1.5 h-5 text-gray-600 dark:text-gray-300">
+          <DashPreviewLine dasharray={value || "none"} />
+          <span className="text-[10px] truncate max-w-[80px]">{dashLabel(value)}</span>
         </button>
-      ))}
-    </div>
+      </P.Trigger>
+      <PopoverContent2 size="no-width">
+        <div className="flex flex-col gap-1 p-2" style={{ width: 200 }}>
+          {DASH_PRESETS.map((preset) => (
+            <P.Close asChild key={preset.value}>
+              <button
+                onClick={() => onChange(preset.value)}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors ${
+                  value === preset.value
+                    ? "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                    : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                <DashPreviewLine dasharray={preset.dasharray} className="text-gray-500 dark:text-gray-400 shrink-0" />
+                <span>{preset.label}</span>
+              </button>
+            </P.Close>
+          ))}
+          <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1.5">
+            <label className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1 block">
+              Custom pattern
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={customValue}
+                onChange={(e) => setCustomValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onChange(customValue.trim());
+                  }
+                }}
+                placeholder="e.g. 4 2 1 2"
+                className="flex-1 min-w-0 text-xs border border-gray-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <button
+                onClick={() => onChange(customValue.trim())}
+                className="text-xs px-2 py-1 rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors shrink-0"
+              >
+                Apply
+              </button>
+            </div>
+            {!isPreset && value && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <DashPreviewLine dasharray={value} className="text-gray-500 dark:text-gray-400" />
+                <span className="text-[10px] text-gray-400">Current</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </PopoverContent2>
+    </P.Root>
   );
 }
 
@@ -372,6 +487,7 @@ function FeatureStylePanelInner({
 
   const [localLineWidth, setLocalLineWidth] = useState(typeof props["stroke-width"] === "number" ? props["stroke-width"] : 2);
   const [localLineOpacity, setLocalLineOpacity] = useState(typeof props["stroke-opacity"] === "number" ? props["stroke-opacity"] : 1);
+  const [localFillOpacity, setLocalFillOpacity] = useState(typeof props["fill-opacity"] === "number" ? props["fill-opacity"] : 0.3);
 
   const nameFocused = useRef(false);
   const descriptionFocused = useRef(false);
@@ -384,6 +500,7 @@ function FeatureStylePanelInner({
   useEffect(() => { setLocalEmojiSize(emojiOpts?.size ?? DEFAULT_EMOJI_SIZE); }, [emojiOpts?.size]);
   useEffect(() => { setLocalLineWidth(typeof props["stroke-width"] === "number" ? props["stroke-width"] : 2); }, [props["stroke-width"]]);
   useEffect(() => { setLocalLineOpacity(typeof props["stroke-opacity"] === "number" ? props["stroke-opacity"] : 1); }, [props["stroke-opacity"]]);
+  useEffect(() => { setLocalFillOpacity(typeof props["fill-opacity"] === "number" ? props["fill-opacity"] : 0.3); }, [props["fill-opacity"]]);
 
   const wrappedFeatureRef = useRef(wrappedFeature);
   wrappedFeatureRef.current = wrappedFeature;
@@ -477,125 +594,172 @@ function FeatureStylePanelInner({
             {/* ── Circle controls ── */}
             {markerOptions.type === "circle" && (
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
-                <PropLabel>Size</PropLabel>
-                <SliderControl
-                  value={localMarkerSize * 2}
-                  min={4} max={40} step={1}
-                  display={`${Math.round(localMarkerSize * 2)}px`}
-                  onChange={(v: number) => { setLocalMarkerSize(v / 2); updateProps({ "marker-size": v / 2 }); }}
-                />
-                <PropLabel>Color</PropLabel>
-                <ControlCell><ColorSwatch color={markerOptions.fill} onChange={(c) => updateProps({ fill: c })} /></ControlCell>
+                <PropLabel>Size &amp; Color</PropLabel>
+                <ControlCell>
+                  <div className="flex items-center gap-1.5">
+                    <SliderPopover
+                      value={localMarkerSize * 2}
+                      min={4} max={40} step={1}
+                      display={`${Math.round(localMarkerSize * 2)}px`}
+                      onChange={(v: number) => { setLocalMarkerSize(v / 2); updateProps({ "marker-size": v / 2 }); }}
+                      icon={<svg width="10" height="10" viewBox="0 0 10 10" className="text-gray-500 dark:text-gray-400"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth={1.2} /></svg>}
+                    />
+                    <ColorSwatch color={markerOptions.fill} onChange={(c) => updateProps({ fill: c })} />
+                  </div>
+                </ControlCell>
                 <PropLabel>Stroke</PropLabel>
-                <SliderControl
-                  value={localStrokeWidth}
-                  min={0} max={8} step={0.5}
-                  display={`${localStrokeWidth}px`}
-                  onChange={(v: number) => { setLocalStrokeWidth(v); updateProps({ "stroke-width": v }); }}
-                />
-                <PropLabel>Stroke Color</PropLabel>
-                <ControlCell><ColorSwatch color={markerOptions.stroke} onChange={(c) => updateProps({ stroke: c })} /></ControlCell>
+                <ControlCell>
+                  <div className="flex items-center gap-1.5">
+                    <SliderPopover
+                      value={localStrokeWidth}
+                      min={0} max={8} step={0.5}
+                      display={`${localStrokeWidth}px`}
+                      onChange={(v: number) => { setLocalStrokeWidth(v); updateProps({ "stroke-width": v }); }}
+                    />
+                    <ColorSwatch color={markerOptions.stroke} onChange={(c) => updateProps({ stroke: c })} />
+                  </div>
+                </ControlCell>
                 <PropLabel>Icon</PropLabel>
-                <ControlCell><IconPopoverPicker selected={markerOptions.icon} onSelect={(n) => setProps({ icon: n })} /></ControlCell>
-                {markerOptions.icon !== null && (
-                  <>
-                    <PropLabel>Icon Color</PropLabel>
-                    <ControlCell><ColorSwatch color={markerOptions.iconColor} onChange={(c) => updateProps({ "icon-color": c })} /></ControlCell>
-                  </>
-                )}
+                <ControlCell>
+                  <div className="flex items-center gap-1.5">
+                    <IconPopoverPicker selected={markerOptions.icon} onSelect={(n) => setProps({ icon: n })} />
+                    {markerOptions.icon !== null && (
+                      <ColorSwatch color={markerOptions.iconColor} onChange={(c) => updateProps({ "icon-color": c })} />
+                    )}
+                  </div>
+                </ControlCell>
               </div>
             )}
 
             {/* ── Pin controls ── */}
             {markerOptions.type === "pin" && (
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
-                <PropLabel>Size</PropLabel>
-                <SliderControl
-                  value={localPinSize}
-                  min={24} max={80} step={2}
-                  display={`${localPinSize}px`}
-                  onChange={(v: number) => { setLocalPinSize(v); updateProps({ "pin-size": v }); }}
-                />
-                <PropLabel>Body Color</PropLabel>
-                <ControlCell><ColorSwatch color={markerOptions.bodyColor} onChange={(c) => updateProps({ "pin-body-color": c })} /></ControlCell>
-                <PropLabel>Inner Color</PropLabel>
-                <ControlCell><ColorSwatch color={markerOptions.innerColor} onChange={(c) => updateProps({ "pin-inner-color": c })} /></ControlCell>
+                <PropLabel>Size &amp; Color</PropLabel>
+                <ControlCell>
+                  <div className="flex items-center gap-1.5">
+                    <SliderPopover
+                      value={localPinSize}
+                      min={24} max={80} step={2}
+                      display={`${localPinSize}px`}
+                      onChange={(v: number) => { setLocalPinSize(v); updateProps({ "pin-size": v }); }}
+                      icon={<svg width="10" height="10" viewBox="0 0 10 10" className="text-gray-500 dark:text-gray-400"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth={1.2} /></svg>}
+                    />
+                    <ColorSwatch color={markerOptions.bodyColor} onChange={(c) => updateProps({ "pin-body-color": c })} />
+                    <ColorSwatch color={markerOptions.innerColor} onChange={(c) => updateProps({ "pin-inner-color": c })} />
+                  </div>
+                </ControlCell>
                 <PropLabel>Icon</PropLabel>
-                <ControlCell><IconPopoverPicker selected={markerOptions.icon} onSelect={(n) => setProps({ icon: n })} /></ControlCell>
-                {markerOptions.icon !== null && (
-                  <>
-                    <PropLabel>Icon Color</PropLabel>
-                    <ControlCell><ColorSwatch color={markerOptions.iconColor} onChange={(c) => updateProps({ "icon-color": c })} /></ControlCell>
-                  </>
-                )}
+                <ControlCell>
+                  <div className="flex items-center gap-1.5">
+                    <IconPopoverPicker selected={markerOptions.icon} onSelect={(n) => setProps({ icon: n })} />
+                    {markerOptions.icon !== null && (
+                      <ColorSwatch color={markerOptions.iconColor} onChange={(c) => updateProps({ "icon-color": c })} />
+                    )}
+                  </div>
+                </ControlCell>
               </div>
             )}
 
             {/* ── Emoji controls ── */}
             {markerOptions.type === "emoji" && (
-              <div className="flex flex-col gap-2">
-                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
-                  <PropLabel>Size</PropLabel>
-                  <SliderControl
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
+                <PropLabel>Size</PropLabel>
+                <ControlCell>
+                  <SliderPopover
                     value={localEmojiSize}
                     min={16} max={80} step={2}
                     display={`${localEmojiSize}px`}
                     onChange={(v: number) => { setLocalEmojiSize(v); updateProps({ "emoji-size": v }); }}
+                    icon={<svg width="10" height="10" viewBox="0 0 10 10" className="text-gray-500 dark:text-gray-400"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth={1.2} /></svg>}
                   />
-                </div>
-                <EmojiPickerContent
-                  selected={markerOptions.emoji}
-                  onSelect={(e) => setProps({ emoji: e })}
-                />
+                </ControlCell>
+                <PropLabel>Emoji</PropLabel>
+                <ControlCell>
+                  <EmojiPopoverPicker
+                    selected={markerOptions.emoji}
+                    onSelect={(e) => setProps({ emoji: e })}
+                  />
+                </ControlCell>
               </div>
             )}
           </>
         ) : isLine ? (
           <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
             <PropLabel>Stroke</PropLabel>
-            <ControlCell>
-              <ColorSwatch
-                color={typeof props.stroke === "string" ? props.stroke : "#7c3aed"}
-                onChange={(c) => updateProps({ stroke: c })}
-              />
-            </ControlCell>
-            <PropLabel>Width</PropLabel>
-            <SliderControl
-              value={localLineWidth}
-              min={0} max={10} step={0.5}
-              display={`${localLineWidth}`}
-              onChange={(v) => { setLocalLineWidth(v); updateProps({ "stroke-width": v }); }}
-            />
-            <PropLabel>Opacity</PropLabel>
-            <SliderControl
-              value={localLineOpacity}
-              min={0} max={1} step={0.05}
-              display={`${Math.round(localLineOpacity * 100)}%`}
-              onChange={(v) => { setLocalLineOpacity(v); updateProps({ "stroke-opacity": v }); }}
-            />
-            <div className="col-span-2">
-              <LineStyleToggle
-                value={typeof props["stroke-dasharray"] === "string" ? props["stroke-dasharray"] : ""}
-                onChange={(v) => updateProps({ "stroke-dasharray": v })}
-              />
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-end gap-1.5 h-7">
+                <SliderPopover
+                  value={localLineWidth}
+                  min={0} max={10} step={0.5}
+                  display={`${localLineWidth}`}
+                  onChange={(v) => { setLocalLineWidth(v); updateProps({ "stroke-width": v }); }}
+                />
+                <SliderPopover
+                  value={localLineOpacity}
+                  min={0} max={1} step={0.05}
+                  display={`${Math.round(localLineOpacity * 100)}%`}
+                  onChange={(v) => { setLocalLineOpacity(v); updateProps({ "stroke-opacity": v }); }}
+                  icon={<svg width="10" height="10" viewBox="0 0 10 10" className="text-gray-500 dark:text-gray-400"><circle cx="5" cy="5" r="4" fill="currentColor" fillOpacity={0.4} stroke="currentColor" strokeWidth={1} /></svg>}
+                />
+                <ColorSwatch
+                  color={typeof props.stroke === "string" ? props.stroke : "#7c3aed"}
+                  onChange={(c) => updateProps({ stroke: c })}
+                />
+              </div>
+              <div className="flex items-center justify-end h-7">
+                <DashPopover
+                  value={typeof props["stroke-dasharray"] === "string" ? props["stroke-dasharray"] : ""}
+                  onChange={(v) => updateProps({ "stroke-dasharray": v })}
+                />
+              </div>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
             <PropLabel>Fill</PropLabel>
             <ControlCell>
-              <ColorSwatch
-                color={typeof props.fill === "string" ? props.fill : "#7c3aed"}
-                onChange={(c) => updateProps({ fill: c })}
-              />
+              <div className="flex items-center gap-1.5">
+                <SliderPopover
+                  value={localFillOpacity}
+                  min={0} max={1} step={0.05}
+                  display={`${Math.round(localFillOpacity * 100)}%`}
+                  onChange={(v) => { setLocalFillOpacity(v); updateProps({ "fill-opacity": v }); }}
+                  icon={<svg width="10" height="10" viewBox="0 0 10 10" className="text-gray-500 dark:text-gray-400"><circle cx="5" cy="5" r="4" fill="currentColor" fillOpacity={0.4} stroke="currentColor" strokeWidth={1} /></svg>}
+                />
+                <ColorSwatch
+                  color={typeof props.fill === "string" ? props.fill : "#7c3aed"}
+                  onChange={(c) => updateProps({ fill: c })}
+                />
+              </div>
             </ControlCell>
             <PropLabel>Stroke</PropLabel>
-            <ControlCell>
-              <ColorSwatch
-                color={typeof props.stroke === "string" ? props.stroke : "#7c3aed"}
-                onChange={(c) => updateProps({ stroke: c })}
-              />
-            </ControlCell>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-end gap-1.5 h-7">
+                <SliderPopover
+                  value={localLineWidth}
+                  min={0} max={10} step={0.5}
+                  display={`${localLineWidth}`}
+                  onChange={(v) => { setLocalLineWidth(v); updateProps({ "stroke-width": v }); }}
+                />
+                <SliderPopover
+                  value={localLineOpacity}
+                  min={0} max={1} step={0.05}
+                  display={`${Math.round(localLineOpacity * 100)}%`}
+                  onChange={(v) => { setLocalLineOpacity(v); updateProps({ "stroke-opacity": v }); }}
+                  icon={<svg width="10" height="10" viewBox="0 0 10 10" className="text-gray-500 dark:text-gray-400"><circle cx="5" cy="5" r="4" fill="currentColor" fillOpacity={0.4} stroke="currentColor" strokeWidth={1} /></svg>}
+                />
+                <ColorSwatch
+                  color={typeof props.stroke === "string" ? props.stroke : "#7c3aed"}
+                  onChange={(c) => updateProps({ stroke: c })}
+                />
+              </div>
+              <div className="flex items-center justify-end h-7">
+                <DashPopover
+                  value={typeof props["stroke-dasharray"] === "string" ? props["stroke-dasharray"] : ""}
+                  onChange={(v) => updateProps({ "stroke-dasharray": v })}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -604,7 +768,37 @@ function FeatureStylePanelInner({
 }
 
 // ---------------------------------------------------------------------------
-// Emoji picker (inline)
+// Emoji popover picker — compact trigger showing current emoji
+// ---------------------------------------------------------------------------
+
+function EmojiPopoverPicker({
+  selected,
+  onSelect,
+}: {
+  selected: string;
+  onSelect: (emoji: string) => void;
+}) {
+  return (
+    <P.Root>
+      <P.Trigger asChild>
+        <button className="flex items-center gap-1 rounded border border-gray-200 dark:border-gray-700 hover:border-gray-400 transition-colors px-1.5 h-7">
+          <span className="text-sm leading-none">{selected}</span>
+          <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[100px]">
+            {EMOJI_LIST.find((e) => e.emoji === selected)?.label ?? ""}
+          </span>
+        </button>
+      </P.Trigger>
+      <PopoverContent2 size="no-width">
+        <div className="p-2" style={{ width: 220 }}>
+          <EmojiPickerContent selected={selected} onSelect={onSelect} />
+        </div>
+      </PopoverContent2>
+    </P.Root>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Emoji picker content (shared by popover)
 // ---------------------------------------------------------------------------
 
 function EmojiPickerContent({

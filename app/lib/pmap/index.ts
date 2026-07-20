@@ -33,7 +33,9 @@ import loadAndAugmentStyle, {
   DECK_EPHEMERAL_ID,
   DECK_FEATURES_ID,
   FEATURES_SOURCE_NAME,
+  FEATURES_LINE_LAYER_NAME,
   EPHEMERAL_SOURCE_NAME,
+  EPHEMERAL_LINE_LAYER_NAME,
   LASSO_SOURCE_NAME,
 } from "app/lib/load_and_augment_style";
 import * as d3 from "d3-color";
@@ -175,6 +177,48 @@ function mSetData(
     //   lastValues.get(source)
     // );
   }
+}
+
+/**
+ * Parse a space-separated dasharray string (e.g. "4 2 1 2") into a numeric array.
+ * Returns null if the string is empty or not parseable.
+ */
+function parseDasharray(str: string): number[] | null {
+  const nums = str.trim().split(/\s+/).map(Number);
+  if (nums.length === 0 || nums.some(isNaN)) return null;
+  return nums;
+}
+
+/**
+ * Collect all unique stroke-dasharray string values from a set of features.
+ */
+function collectDashPatterns(features: Feature[]): Map<string, number[]> {
+  const patterns = new Map<string, number[]>();
+  for (const f of features) {
+    const da = (f.properties as Record<string, unknown> | null)?.["stroke-dasharray"];
+    if (typeof da === "string" && da !== "") {
+      if (!patterns.has(da)) {
+        const parsed = parseDasharray(da);
+        if (parsed) patterns.set(da, parsed);
+      }
+    }
+  }
+  return patterns;
+}
+
+/**
+ * Build a mapbox expression for line-dasharray that handles all known patterns.
+ */
+function buildDashExpression(
+  patterns: Map<string, number[]>,
+): mapboxgl.Expression {
+  const cases: (mapboxgl.Expression | number[])[] = [];
+  for (const [str, arr] of patterns) {
+    cases.push(["==", ["get", "stroke-dasharray"], str], ["literal", arr]);
+  }
+  // Default: solid line
+  cases.push(["literal", [1, 0]]);
+  return ["case", ...cases] as mapboxgl.Expression;
 }
 
 /**
@@ -471,11 +515,26 @@ export default class PMap {
     const featuresSource = this.map.getSource(FEATURES_SOURCE_NAME) as mapboxgl.GeoJSONSource | undefined;
     const ephemeralSource = this.map.getSource(EPHEMERAL_SOURCE_NAME) as mapboxgl.GeoJSONSource | undefined;
 
+    const linePolyFeatures = groups.features.filter(isLineOrPoly);
+    const linePolyEphemeral = groups.ephemeral.filter(isLineOrPoly);
+
     if (featuresSource) {
-      mSetData(featuresSource, groups.features.filter(isLineOrPoly), "mapbox-features", force);
+      mSetData(featuresSource, linePolyFeatures, "mapbox-features", force);
     }
     if (ephemeralSource) {
-      mSetData(ephemeralSource, groups.ephemeral.filter(isLineOrPoly), "mapbox-ephemeral", force);
+      mSetData(ephemeralSource, linePolyEphemeral, "mapbox-ephemeral", force);
+    }
+
+    // Update line-dasharray expression to include any custom patterns
+    if (this.lastSymbolization?.simplestyle) {
+      const allLineFeatures = [...linePolyFeatures, ...linePolyEphemeral];
+      const dashPatterns = collectDashPatterns(allLineFeatures);
+      const dashExpr = buildDashExpression(dashPatterns);
+      for (const layerId of [FEATURES_LINE_LAYER_NAME, EPHEMERAL_LINE_LAYER_NAME]) {
+        if (this.map.getLayer(layerId)) {
+          (this.map as any).setPaintProperty(layerId, "line-dasharray", dashExpr);
+        }
+      }
     }
 
     // Sync feature-state for selection (highlight selected features in mapbox GL)
