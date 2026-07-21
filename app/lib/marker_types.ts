@@ -124,7 +124,9 @@ export function buildEmojiAtlas(): {
       width: EMOJI_CANVAS_SIZE,
       height: EMOJI_CANVAS_SIZE,
       anchorX: EMOJI_CANVAS_SIZE / 2,
-      anchorY: EMOJI_CANVAS_SIZE / 2,
+      // Emoji glyphs render visually above center on most platforms;
+      // shift anchor down to align with the coordinate point.
+      anchorY: EMOJI_CANVAS_SIZE * 0.37,
     };
   });
 
