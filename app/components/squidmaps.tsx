@@ -2,6 +2,7 @@ import { Dialogs } from "app/components/dialogs";
 import Drop from "app/components/drop";
 import { MapComponent } from "app/components/map_component";
 import { MapTitleBar } from "app/components/map_title_bar";
+import { env } from "app/lib/env_client";
 import type PMap from "app/lib/pmap";
 import "styles/globals.css";
 import "core-js/features/array/at";
@@ -11,13 +12,13 @@ import Notifications from "app/components/notifications";
 import { MapContext } from "app/context/map_context";
 import { useImportFile, useImportString } from "app/hooks/use_import";
 import { DEFAULT_IMPORT_OPTIONS, detectType } from "app/lib/convert";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ChevronLeftIcon } from "@radix-ui/react-icons";
-import { Tooltip as T } from "radix-ui";
+import { Switch, Tooltip as T } from "radix-ui";
 import { TContent, StyledTooltipArrow } from "./elements";
 import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { dialogAtom, selectedFeaturesAtom } from "state/jotai";
+import { dialogAtom, layerConfigAtom, selectedFeaturesAtom } from "state/jotai";
 import { match } from "ts-pattern";
 import { useSearchParams } from "wouter";
 import Modes from "app/components/modes";
@@ -100,19 +101,105 @@ function UrlAPI() {
   return null;
 }
 
+const BASEMAP_OPTIONS = [
+  { id: "streets", name: "Streets", url: "mapbox://styles/mapbox/streets-v12" },
+  { id: "light", name: "Light", url: "mapbox://styles/mapbox/light-v11" },
+  { id: "dark", name: "Dark", url: "mapbox://styles/mapbox/dark-v11" },
+  { id: "satellite", name: "Satellite", url: "mapbox://styles/mapbox/satellite-streets-v12" },
+  { id: "outdoors", name: "Outdoors", url: "mapbox://styles/mapbox/outdoors-v12" },
+] as const;
+
+function basemapThumbnailUrl(styleUrl: string): string {
+  const token = env.MAPBOX_TOKEN;
+  // Extract style path from mapbox:// URL → /mapbox/styles/mapbox/light-v11
+  const stylePath = styleUrl.replace("mapbox://styles/", "");
+  return `https://api.mapbox.com/styles/v1/${stylePath}/static/-73.99,40.735,13,0/120x120@2x?access_token=${token}&attribution=false&logo=false`;
+}
+
+function BasemapSelector() {
+  const [layerConfigs, setLayerConfigs] = useAtom(layerConfigAtom);
+
+  // Get current layer config (single entry map)
+  const [layerId, currentConfig] = [...layerConfigs.entries()][0];
+  const currentUrl = currentConfig?.url ?? "";
+  const labelsVisible = currentConfig?.labelVisibility ?? true;
+
+  function selectBasemap(url: string, name: string) {
+    if (!layerId || !currentConfig) return;
+    const next = new Map(layerConfigs);
+    next.set(layerId, { ...currentConfig, url, name });
+    setLayerConfigs(next);
+  }
+
+  function toggleLabels() {
+    if (!layerId || !currentConfig) return;
+    const next = new Map(layerConfigs);
+    next.set(layerId, { ...currentConfig, labelVisibility: !labelsVisible });
+    setLayerConfigs(next);
+  }
+
+  return (
+    <div className="p-3">
+      <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Basemap</div>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {BASEMAP_OPTIONS.map((opt) => {
+          const selected = currentUrl === opt.url;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => selectBasemap(opt.url, opt.name)}
+              className="flex flex-col items-center gap-1.5 shrink-0"
+            >
+              <div
+                className={`w-[36px] h-[36px] rounded-md overflow-hidden border-2 transition-colors ${
+                  selected
+                    ? "border-[#1f7a6c]"
+                    : "border-[#dde6e2] hover:border-[#8fa8a2]"
+                }`}
+              >
+                <img
+                  src={basemapThumbnailUrl(opt.url)}
+                  alt={opt.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  draggable={false}
+                />
+              </div>
+              <span
+                className={`text-[10px] font-semibold ${
+                  selected ? "text-[#1f7a6c]" : "text-[#5b7d76]"
+                }`}
+              >
+                {opt.name}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <label className="flex items-center gap-2 mt-3 cursor-pointer select-none">
+        <Switch.Root
+          checked={labelsVisible}
+          onCheckedChange={toggleLabels}
+          className="w-[30px] h-[17px] rounded-full bg-[#c7dbd5] data-[state=checked]:bg-[#1f7a6c] transition-colors shrink-0 relative"
+        >
+          <Switch.Thumb className="block w-[13px] h-[13px] rounded-full bg-white shadow-sm transition-transform translate-x-[2px] data-[state=checked]:translate-x-[15px]" />
+        </Switch.Root>
+        <span className="text-xs text-[#5b7d76] font-medium">
+          Show map labels
+        </span>
+      </label>
+    </div>
+  );
+}
+
 function RightSidebarContent() {
   const selectedFeatures = useAtomValue(selectedFeaturesAtom);
   if (selectedFeatures.length === 1) {
     return <FeatureStylePanel />;
   }
   return (
-    <div className="p-3">
-      <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
-        Map configuration
-      </div>
-      <p className="text-xs text-gray-400 dark:text-gray-500">
-        Select a feature to edit its style.
-      </p>
+    <div>
+      <BasemapSelector />
     </div>
   );
 }
