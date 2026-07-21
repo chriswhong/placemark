@@ -240,6 +240,78 @@ function getMarkerRadius(f: GeoJSON.Feature): number {
 }
 
 /**
+ * Greedy label deconfliction: project points to screen pixels, estimate label
+ * bounding boxes, and keep only labels that don't overlap previously placed ones.
+ */
+function deconflictLabels(
+  features: GeoJSON.Feature<GeoJSON.Geometry, GeoJSON.GeoJsonProperties>[],
+  map: mapboxgl.Map,
+): GeoJSON.Feature[] {
+  const CHAR_W = 7; // approximate width per character at size 13
+  const LABEL_H = 16; // approximate line height
+  const PAD = 2; // padding around each label box
+
+  const placed: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  const result: GeoJSON.Feature[] = [];
+
+  for (const f of features) {
+    const coords = (f.geometry as GeoJSON.Point).coordinates;
+    const px = map.project(coords as [number, number]);
+    const name = f.properties?.name as string;
+    const props = f.properties ?? {};
+    const anchor = (props["name-anchor"] as string) || "right";
+
+    // Estimate pixel offset (mirrors the TextLayer getPixelOffset logic)
+    let offX = 0;
+    let offY = 0;
+    const gap = 6;
+    const isPin = props["marker-type"] === "pin";
+
+    if (isPin) {
+      const h = typeof props["pin-size"] === "number" ? props["pin-size"] : DEFAULT_PIN_SIZE;
+      const yOff = -(h * PIN_INNER_CENTER_ABOVE_TIP_FRACTION);
+      const xR = h * PIN_HALF_WIDTH_FRACTION;
+      if (anchor === "left") { offX = -(xR + gap); offY = yOff; }
+      else if (anchor === "bottom") { offY = gap; }
+      else { offX = xR + gap; offY = yOff; }
+    } else {
+      const r = getMarkerRadius(f);
+      if (anchor === "left") { offX = -(r + gap); }
+      else if (anchor === "bottom") { offY = r + gap; }
+      else { offX = r + gap; }
+    }
+
+    const labelW = name.length * CHAR_W;
+    let x1: number, x2: number;
+    if (anchor === "left") {
+      x2 = px.x + offX;
+      x1 = x2 - labelW;
+    } else if (anchor === "bottom") {
+      x1 = px.x + offX - labelW / 2;
+      x2 = x1 + labelW;
+    } else {
+      x1 = px.x + offX;
+      x2 = x1 + labelW;
+    }
+    const y1 = px.y + offY - LABEL_H / 2;
+    const y2 = y1 + LABEL_H;
+
+    const box = { x1: x1 - PAD, y1: y1 - PAD, x2: x2 + PAD, y2: y2 + PAD };
+
+    const overlaps = placed.some(
+      (p) => box.x1 < p.x2 && box.x2 > p.x1 && box.y1 < p.y2 && box.y2 > p.y1,
+    );
+
+    if (!overlaps) {
+      placed.push(box);
+      result.push(f);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Parse a CSS/hex color string into a DeckGL RGBA array [r, g, b, a].
  */
 function parseColor(
@@ -275,6 +347,7 @@ export default class PMap {
   emojiMapping: EmojiIconMapping | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lastDeckLayers: any[] = [];
+  lastLabelCandidates: GeoJSON.Feature[] = [];
   lastMapboxSelectionIds: Set<RawId> = new Set();
 
   constructor({
@@ -442,6 +515,17 @@ export default class PMap {
 
   onMove = (e: MoveEvent) => {
     this.handlers.current.onMove(e);
+    // Re-deconflict labels on every frame so they update during zoom/pan
+    if (this.lastLabelCandidates.length && this.lastDeckLayers.length) {
+      const deconflicted = deconflictLabels(this.lastLabelCandidates, this.map);
+      this.overlay.setProps({
+        layers: this.lastDeckLayers.map((layer: any) =>
+          layer.id === DECK_POINT_LABELS_ID
+            ? layer.clone({ data: deconflicted })
+            : layer,
+        ) as any,
+      });
+    }
   };
 
   onMapMouseMove = (e: mapboxgl.MapMouseEvent) => {
@@ -798,13 +882,16 @@ export default class PMap {
         }),
         new TextLayer<GeoJSON.Feature>({
           id: DECK_POINT_LABELS_ID,
-          data: [...pointFeatures, ...pointEphemeral].filter(
-            (f) =>
-              f.geometry?.type === "Point" &&
-              typeof f.properties?.name === "string" &&
-              (f.properties.name as string).length > 0 &&
-              f.properties?.["name-anchor"] !== "none",
-          ),
+          data: (() => {
+            this.lastLabelCandidates = [...pointFeatures, ...pointEphemeral].filter(
+              (f) =>
+                f.geometry?.type === "Point" &&
+                typeof f.properties?.name === "string" &&
+                (f.properties.name as string).length > 0 &&
+                f.properties?.["name-anchor"] !== "none",
+            ) as GeoJSON.Feature[];
+            return deconflictLabels(this.lastLabelCandidates, this.map);
+          })(),
           pickable: false,
           getPosition: (f) =>
             (f.geometry as GeoJSON.Point).coordinates as [number, number],
