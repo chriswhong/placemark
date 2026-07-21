@@ -435,6 +435,113 @@ function NameAnchorPopover({
 }
 
 // ---------------------------------------------------------------------------
+// Style presets for circle and pin markers
+// ---------------------------------------------------------------------------
+
+interface CirclePreset {
+  fill: string;
+  stroke: string;
+  iconColor: string;
+}
+
+interface PinPreset {
+  bodyColor: string;
+  innerColor: string;
+  iconColor: string;
+}
+
+const CIRCLE_PRESETS: CirclePreset[] = [
+  // Classic cartographic palette — high contrast, map-friendly
+  { fill: "#7c3aed", stroke: "#ffffff", iconColor: "#ffffff" },  // Purple (default)
+  { fill: "#dc2626", stroke: "#ffffff", iconColor: "#ffffff" },  // Vermilion
+  { fill: "#ea580c", stroke: "#ffffff", iconColor: "#ffffff" },  // Burnt orange
+  { fill: "#d97706", stroke: "#ffffff", iconColor: "#ffffff" },  // Amber
+  { fill: "#16a34a", stroke: "#ffffff", iconColor: "#ffffff" },  // Forest green
+  { fill: "#0d9488", stroke: "#ffffff", iconColor: "#ffffff" },  // Teal
+  { fill: "#2563eb", stroke: "#ffffff", iconColor: "#ffffff" },  // Cobalt
+  { fill: "#7c3aed", stroke: "#c4b5fd", iconColor: "#ffffff" },  // Purple on lavender
+  { fill: "#0f172a", stroke: "#ffffff", iconColor: "#ffffff" },  // Near-black
+  { fill: "#ffffff", stroke: "#374151", iconColor: "#374151" },  // White
+  { fill: "#fbbf24", stroke: "#92400e", iconColor: "#92400e" },  // Gold
+  { fill: "#f0abfc", stroke: "#a21caf", iconColor: "#a21caf" },  // Pink
+];
+
+const PIN_PRESETS: PinPreset[] = [
+  // Body + inner circle pairs — darker body, lighter inner
+  { bodyColor: "#43538D", innerColor: "#6B82D6", iconColor: "#ffffff" },  // Indigo (default)
+  { bodyColor: "#b91c1c", innerColor: "#fca5a5", iconColor: "#7f1d1d" },  // Crimson
+  { bodyColor: "#c2410c", innerColor: "#fdba74", iconColor: "#7c2d12" },  // Rust
+  { bodyColor: "#a16207", innerColor: "#fde68a", iconColor: "#78350f" },  // Ochre
+  { bodyColor: "#15803d", innerColor: "#86efac", iconColor: "#14532d" },  // Emerald
+  { bodyColor: "#0f766e", innerColor: "#99f6e4", iconColor: "#134e4a" },  // Teal
+  { bodyColor: "#1d4ed8", innerColor: "#93c5fd", iconColor: "#1e3a8a" },  // Royal blue
+  { bodyColor: "#7e22ce", innerColor: "#d8b4fe", iconColor: "#581c87" },  // Violet
+  { bodyColor: "#1e293b", innerColor: "#94a3b8", iconColor: "#0f172a" },  // Slate
+  { bodyColor: "#78350f", innerColor: "#fcd34d", iconColor: "#451a03" },  // Bronze
+  { bodyColor: "#9f1239", innerColor: "#fda4af", iconColor: "#881337" },  // Rose
+  { bodyColor: "#374151", innerColor: "#ffffff", iconColor: "#374151" },  // Charcoal
+];
+
+function CirclePresetPicker({
+  onSelect,
+}: {
+  onSelect: (preset: CirclePreset) => void;
+}) {
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+      <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">
+        Presets
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {CIRCLE_PRESETS.map((preset, i) => (
+          <button
+            key={i}
+            onClick={() => onSelect(preset)}
+            className="shrink-0 rounded-full hover:scale-125 transition-transform"
+            title={`${preset.fill} / ${preset.stroke}`}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18">
+              <circle cx="9" cy="9" r="7" fill={preset.fill} stroke={preset.stroke} strokeWidth={2} />
+            </svg>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PinPresetPicker({
+  onSelect,
+}: {
+  onSelect: (preset: PinPreset) => void;
+}) {
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+      <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">
+        Presets
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {PIN_PRESETS.map((preset, i) => (
+          <button
+            key={i}
+            onClick={() => onSelect(preset)}
+            className="shrink-0 hover:scale-125 transition-transform"
+            title={`${preset.bodyColor} / ${preset.innerColor}`}
+          >
+            <img
+              src={pinSvgDataUrl(preset.bodyColor, preset.innerColor, null, "#ffffff")}
+              width={13}
+              height={18}
+              alt=""
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Dash pattern popover — trigger shows line preview + label, popover has presets + custom input
 // ---------------------------------------------------------------------------
 
@@ -700,6 +807,8 @@ function FeatureStylePanelInner({
 
             {/* ── Circle controls ── */}
             {markerOptions.type === "circle" && (
+              <div className="flex flex-col gap-2 min-w-0">
+              <CirclePresetPicker onSelect={(p) => setProps({ fill: p.fill, stroke: p.stroke, "icon-color": p.iconColor })} />
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
                 <PropLabel>Size &amp; Color</PropLabel>
                 <ControlCell>
@@ -736,10 +845,13 @@ function FeatureStylePanelInner({
                   </div>
                 </ControlCell>
               </div>
+              </div>
             )}
 
             {/* ── Pin controls ── */}
             {markerOptions.type === "pin" && (
+              <div className="flex flex-col gap-2 min-w-0">
+              <PinPresetPicker onSelect={(p) => setProps({ "pin-body-color": p.bodyColor, "pin-inner-color": p.innerColor, "icon-color": p.iconColor })} />
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 min-w-0">
                 <PropLabel>Size &amp; Color</PropLabel>
                 <ControlCell>
@@ -764,6 +876,7 @@ function FeatureStylePanelInner({
                     )}
                   </div>
                 </ControlCell>
+              </div>
               </div>
             )}
 
