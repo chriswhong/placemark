@@ -816,13 +816,30 @@ export default class PMap {
           fontSettings: { sdf: true },
           letterSpacing: 0.06,
           getColor: [30, 30, 30, 255],
-          outlineWidth: 3,
-          outlineColor: [255, 255, 255, 200],
+          outlineWidth: 5,
+          outlineColor: [255, 255, 255, 220],
           background: false,
           getPixelOffset: (f: GeoJSON.Feature) => {
             const anchor = (f.properties?.["name-anchor"] as string) || "right";
-            const markerRadius = getMarkerRadius(f);
+            const props = f.properties ?? {};
+            const isPin = props["marker-type"] === "pin";
             const gap = 6;
+
+            if (isPin) {
+              const h = typeof props["pin-size"] === "number" ? props["pin-size"] : DEFAULT_PIN_SIZE;
+              const yOffset = -(h * PIN_INNER_CENTER_ABOVE_TIP_FRACTION);
+              const xRadius = h * PIN_HALF_WIDTH_FRACTION;
+              switch (anchor) {
+                case "left":
+                  return [-(xRadius + gap), yOffset];
+                case "bottom":
+                  return [0, gap];
+                default: // "right"
+                  return [xRadius + gap, yOffset];
+              }
+            }
+
+            const markerRadius = getMarkerRadius(f);
             switch (anchor) {
               case "left":
                 return [-(markerRadius + gap), 0];
@@ -849,7 +866,7 @@ export default class PMap {
           },
           updateTriggers: {
             getPixelOffset: [...pointFeatures, ...pointEphemeral].map(
-              (f) => `${f.id}:${f.properties?.["name-anchor"]}:${f.properties?.["marker-size"]}:${f.properties?.["pin-size"]}:${f.properties?.["emoji-size"]}`,
+              (f) => `${f.id}:${f.properties?.["name-anchor"]}:${f.properties?.["marker-type"]}:${f.properties?.["marker-size"]}:${f.properties?.["pin-size"]}:${f.properties?.["emoji-size"]}`,
             ),
             getTextAnchor: [...pointFeatures, ...pointEphemeral].map(
               (f) => `${f.id}:${f.properties?.["name-anchor"]}`,
