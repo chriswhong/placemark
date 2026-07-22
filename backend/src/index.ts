@@ -24,14 +24,16 @@ server.addContentTypeParser(
   },
 );
 
-// Allow image/jpeg bodies to pass through raw (thumbnail upload)
-server.addContentTypeParser(
-  "image/jpeg",
-  { parseAs: "buffer" },
-  (_req, body, done) => {
-    done(null, body);
-  },
-);
+// Allow image bodies to pass through raw (thumbnail & feature image upload)
+for (const mime of ["image/jpeg", "image/png", "image/webp"]) {
+  server.addContentTypeParser(
+    mime,
+    { parseAs: "buffer" },
+    (_req, body, done) => {
+      done(null, body);
+    },
+  );
+}
 
 // Auth: decorate every request with userId / username
 await server.register(authPlugin);

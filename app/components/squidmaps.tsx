@@ -9,18 +9,26 @@ import { Keybindings } from "app/components/keybindings";
 import { Legend } from "app/components/legend";
 import Notifications from "app/components/notifications";
 import { MapContext } from "app/context/map_context";
+import { MapSlugContext, useMapSlug } from "app/context/map_slug_context";
 import { useImportFile, useImportString } from "app/hooks/use_import";
 import { DEFAULT_IMPORT_OPTIONS, detectType } from "app/lib/convert";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { usePersistence } from "app/lib/persistence/context";
-import { ChevronLeftIcon, Pencil2Icon } from "@radix-ui/react-icons";
+import { ChevronLeftIcon, Cross2Icon, Pencil2Icon } from "@radix-ui/react-icons";
 import { Switch, Tooltip as T } from "radix-ui";
 import { TContent, StyledTooltipArrow } from "./elements";
 import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { dialogAtom, layerConfigAtom, scaleUnitAtom, scaleVisibleAtom, selectedFeaturesAtom, zoomControlVisibleAtom } from "state/jotai";
+import { activeInteractionAtom, dataAtom, dialogAtom, layerConfigAtom, scaleUnitAtom, scaleVisibleAtom, selectedFeaturesAtom, zoomControlVisibleAtom, type ActiveInteraction } from "state/jotai";
+import { DECK_SYNTHETIC_ID } from "app/lib/constants";
 import { SCALE_UNITS, zScaleUnit } from "app/lib/constants";
+import { DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID } from "app/lib/pmap";
+import { DECK_FEATURES_ID } from "app/lib/load_and_augment_style";
+import { decodeId } from "app/lib/id";
+import { UIDMap } from "app/lib/id_mapper";
+import { getMarkerOptions } from "app/lib/marker_types";
 import { match } from "ts-pattern";
+import Markdown from "react-markdown";
 import { useSearchParams } from "wouter";
 import Modes from "app/components/modes";
 import { FeatureEditorFolderInner } from "./panels/feature_editor/feature_editor_folder";
@@ -320,8 +328,8 @@ function PreviewTitleOverlay({ mapTitle, username }: { mapTitle: string; usernam
         @{username}
       </div>
       {description && (
-        <div className="text-sm text-[#5b7d76] mt-2 leading-relaxed">
-          {description}
+        <div className="text-sm text-[#5b7d76] mt-2 leading-relaxed prose prose-sm prose-stone max-w-none">
+          <Markdown>{description}</Markdown>
         </div>
       )}
     </div>
@@ -335,6 +343,260 @@ interface SquidmapsProps {
 }
 
 const panelShadow = "0 6px 20px rgba(18,49,44,0.14)";
+
+// ---------------------------------------------------------------------------
+// Interaction components for preview mode
+// ---------------------------------------------------------------------------
+
+function MapPopup({ interaction, onClose }: { interaction: ActiveInteraction; onClose: () => void }) {
+  const mapSlug = useMapSlug();
+  const imageUrl = interaction.hasImage ? `/api/maps/${mapSlug}/features/${interaction.featureId}/image` : null;
+  return (
+    <div
+      className="absolute z-20 pointer-events-auto"
+      style={{ left: interaction.screenX, top: interaction.screenY, transform: "translate(-50%, -100%) translateY(-12px)" }}
+    >
+      <div
+        className="bg-white rounded-xl border border-[#dde6e2] overflow-hidden max-w-xs"
+        style={{ boxShadow: panelShadow }}
+      >
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt=""
+            className="w-full h-32 object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
+        <div className="px-3 py-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="font-semibold text-sm text-[#12312c]">{interaction.name}</div>
+            <button
+              onClick={onClose}
+              className="text-[#8fa8a2] hover:text-[#12312c] transition-colors shrink-0 mt-0.5"
+            >
+              <Cross2Icon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {interaction.text && (
+            <div className="text-xs text-[#5b7d76] mt-1 leading-relaxed prose prose-xs prose-stone max-w-none">
+              <Markdown>{interaction.text}</Markdown>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Arrow */}
+      <div className="flex justify-center -mt-px">
+        <div className="w-3 h-3 bg-white border-b border-r border-[#dde6e2] rotate-45 -translate-y-1.5" />
+      </div>
+    </div>
+  );
+}
+
+function MapTooltip({ interaction }: { interaction: ActiveInteraction }) {
+  return (
+    <div
+      className="absolute z-20 pointer-events-none"
+      style={{ left: interaction.screenX, top: interaction.screenY }}
+    >
+      <div
+        className="bg-[#12312c] text-white text-xs px-2.5 py-1.5 rounded-lg max-w-[200px]"
+        style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
+      >
+        {interaction.name && <div className="font-semibold">{interaction.name}</div>}
+        {interaction.text && (
+          <div className="opacity-80 mt-0.5 prose prose-xs prose-invert max-w-none">
+            <Markdown>{interaction.text}</Markdown>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SlideInPanel({ interaction, onClose }: { interaction: ActiveInteraction; onClose: () => void }) {
+  const mapSlug = useMapSlug();
+  const imageUrl = interaction.hasImage ? `/api/maps/${mapSlug}/features/${interaction.featureId}/image` : null;
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  function handleClose() {
+    setVisible(false);
+    setTimeout(onClose, 200);
+  }
+
+  return (
+    <div
+      className="absolute top-3 bottom-3 left-3 z-20 w-[300px] flex flex-col bg-white rounded-2xl border border-[#dde6e2] overflow-hidden transition-transform duration-200 ease-out"
+      style={{
+        boxShadow: panelShadow,
+        transform: visible ? "translateX(0)" : "translateX(-110%)",
+      }}
+    >
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#dde6e2] shrink-0">
+        <div className="font-semibold text-sm text-[#12312c] truncate">{interaction.name}</div>
+        <button
+          onClick={handleClose}
+          className="text-[#8fa8a2] hover:text-[#12312c] transition-colors shrink-0"
+        >
+          <Cross2Icon className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="flex-auto overflow-y-auto squidmaps-scrollbar">
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt=""
+            className="w-full h-48 object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
+        {interaction.text && (
+          <div className="px-3 py-3 text-sm text-[#5b7d76] leading-relaxed prose prose-sm prose-stone max-w-none">
+            <Markdown>{interaction.text}</Markdown>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewInteractionHandler() {
+  const map = useContext(MapContext);
+  const data = useAtomValue(dataAtom);
+  const rep = usePersistence();
+  const setInteraction = useSetAtom(activeInteractionAtom);
+
+  useEffect(() => {
+    if (!map?.map) return;
+    const mlMap = map.map;
+
+    function pickFeature(point: { x: number; y: number }) {
+      if (!map) return null;
+      const featureLayers = [DECK_FEATURES_ID, DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID, DECK_SYNTHETIC_ID];
+      const pick = map.overlay.pickObject({ ...point, layerIds: featureLayers }) as { object: { id: unknown } } | null;
+      if (!pick) {
+        const multi = map.overlay.pickMultipleObjects({ ...point, radius: 10, layerIds: featureLayers }) as { object: { id: unknown } }[] | null;
+        return multi?.[0] ?? null;
+      }
+      return pick;
+    }
+
+    function getInteractionForPick(pick: { object: { id: unknown } } | null) {
+      if (!pick) return null;
+      const rawId = pick.object.id;
+      const decoded = decodeId(rawId as RawId);
+      if (decoded.type !== "feature") return null;
+      const uuid = UIDMap.getUUID(rep.idMap, decoded.featureId);
+      const wf = data.featureMap.get(uuid);
+      if (!wf) return null;
+      const props = (wf.feature.properties ?? {}) as Record<string, unknown>;
+      const iType = typeof props["interaction-type"] === "string" ? props["interaction-type"] : "none";
+      if (iType === "none") return null;
+      return { wf, props, iType: iType as "popup" | "tooltip" | "panel" };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function getScreenPosForFeature(
+      wf: any,
+      props: Record<string, unknown>,
+    ): { screenX: number; screenY: number } {
+      const geom = wf.feature?.geometry;
+      if (!geom || geom.type !== "Point") return { screenX: 0, screenY: 0 };
+      const [lng, lat] = (geom as GeoJSON.Point).coordinates;
+      const pt = mlMap.project([lng, lat] as maplibregl.LngLatLike);
+      const marker = getMarkerOptions(props);
+      let offsetY = 0;
+      switch (marker.type) {
+        case "circle":
+          offsetY = marker.markerSize + marker.strokeWidth;
+          break;
+        case "pin":
+          offsetY = marker.size;
+          break;
+        case "emoji":
+          offsetY = marker.size / 2;
+          break;
+      }
+      return { screenX: pt.x, screenY: pt.y - offsetY };
+    }
+
+    function onClick(e: maplibregl.MapMouseEvent) {
+      const pick = pickFeature(e.point);
+      const info = getInteractionForPick(pick);
+      if (!info || info.iType === "tooltip") {
+        if (!info) setInteraction(null);
+        return;
+      }
+      const name = typeof info.props.name === "string" ? info.props.name : "";
+      const text = typeof info.props.description === "string" ? info.props.description : "";
+      const hasImage = !!info.props._hasImage;
+      const pos = getScreenPosForFeature(info.wf, info.props);
+      setInteraction({
+        featureId: info.wf.id,
+        type: info.iType,
+        name,
+        text,
+        hasImage,
+        ...pos,
+      });
+    }
+
+    function onMouseMove(e: maplibregl.MapMouseEvent) {
+      const pick = pickFeature(e.point);
+      const info = getInteractionForPick(pick);
+      if (info?.iType === "tooltip") {
+        const name = typeof info.props.name === "string" ? info.props.name : "";
+        const text = typeof info.props.description === "string" ? info.props.description : "";
+        setInteraction({
+          featureId: info.wf.id,
+          type: "tooltip",
+          name,
+          text,
+          hasImage: false,
+          screenX: e.point.x + 12,
+          screenY: e.point.y - 8,
+        });
+        mlMap.getCanvas().style.cursor = "pointer";
+      } else {
+        setInteraction((prev) => prev?.type === "tooltip" ? null : prev);
+        if (info) {
+          mlMap.getCanvas().style.cursor = "pointer";
+        } else {
+          mlMap.getCanvas().style.cursor = "";
+        }
+      }
+    }
+
+    mlMap.on("click", onClick);
+    mlMap.on("mousemove", onMouseMove);
+    return () => {
+      mlMap.off("click", onClick);
+      mlMap.off("mousemove", onMouseMove);
+      mlMap.getCanvas().style.cursor = "";
+    };
+  }, [map, data, rep.idMap, setInteraction]);
+
+  return null;
+}
+
+function InteractionOverlay() {
+  const [interaction, setInteraction] = useAtom(activeInteractionAtom);
+  if (!interaction) return null;
+
+  const onClose = () => setInteraction(null);
+
+  return (
+    <>
+      {interaction.type === "popup" && <MapPopup interaction={interaction} onClose={onClose} />}
+      {interaction.type === "tooltip" && <MapTooltip interaction={interaction} />}
+      {interaction.type === "panel" && <SlideInPanel interaction={interaction} onClose={onClose} />}
+    </>
+  );
+}
 
 function DebugPanel() {
   const map = useContext(MapContext);
@@ -385,13 +647,16 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
     setSearchParams("?preview=true");
   }, [setSearchParams]);
 
+  const setInteraction = useSetAtom(activeInteractionAtom);
   const exitPreview = useCallback(() => {
+    setInteraction(null);
     setSearchParams("");
-  }, [setSearchParams]);
+  }, [setSearchParams, setInteraction]);
 
   return (
     <main className="h-screen flex flex-col">
       <T.Provider>
+        <MapSlugContext.Provider value={mapSlug}>
         <MapContext.Provider value={map}>
           <div className="flex-auto relative">
             <MapComponent setMap={setMap} />
@@ -414,6 +679,7 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
                     Back to editor
                   </button>
                 </div>
+                <PreviewInteractionHandler />
               </>
             ) : (
               <>
@@ -495,6 +761,7 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
                 </div>
               </>
             )}
+            <InteractionOverlay />
           </div>
           <Drop />
           <UrlAPI />
@@ -504,6 +771,7 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
           </Suspense>
           <Notifications />
         </MapContext.Provider>
+        </MapSlugContext.Provider>
       </T.Provider>
     </main>
   );

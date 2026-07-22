@@ -32,14 +32,18 @@ export async function mapRoutes(fastify: FastifyInstance) {
       if (!mapId) return reply.status(404).send({ error: "Map not found" });
 
       const [features, folders, layerConfigs, metaRows] = await Promise.all([
-        sql<Row[]>`SELECT data FROM features WHERE map_id = ${mapId}`,
+        sql<Row[]>`SELECT data, (image IS NOT NULL) AS has_image FROM features WHERE map_id = ${mapId}`,
         sql<Row[]>`SELECT data FROM folders WHERE map_id = ${mapId}`,
         sql<Row[]>`SELECT data FROM layer_configs WHERE map_id = ${mapId}`,
         sql<Row[]>`SELECT data FROM metadata WHERE map_id = ${mapId} LIMIT 1`,
       ]);
 
       return {
-        features: features.map((r) => r.data),
+        features: features.map((r) => {
+          const d = r.data;
+          if (r.has_image) d._hasImage = true;
+          return d;
+        }),
         folders: folders.map((r) => r.data),
         layerConfigs: layerConfigs.map((r) => r.data),
         metadata: metaRows[0]?.data ?? {},
@@ -174,6 +178,69 @@ export async function mapRoutes(fastify: FastifyInstance) {
         .header("Content-Type", "image/jpeg")
         .header("Cache-Control", "public, max-age=300")
         .send(thumb);
+    },
+  );
+
+  // Upload a feature image (JPEG/PNG/WebP blob, max 2MB)
+  fastify.put<{ Params: { mapSlug: string; featureId: string } }>(
+    "/maps/:mapSlug/features/:featureId/image",
+    async (req, reply) => {
+      const mapId = await getMapId(req.userId, req.params.mapSlug);
+      if (!mapId) return reply.status(404).send({ error: "Map not found" });
+
+      const buffer = req.body as Buffer;
+      if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+        return reply.status(400).send({ error: "Empty body" });
+      }
+      if (buffer.length > 2 * 1024 * 1024) {
+        return reply.status(413).send({ error: "Image too large (max 2MB)" });
+      }
+
+      const result = await sql`
+        UPDATE features SET image = ${buffer}
+        WHERE id = ${req.params.featureId} AND map_id = ${mapId}
+      `;
+      if (result.count === 0) {
+        return reply.status(404).send({ error: "Feature not found" });
+      }
+      return { ok: true };
+    },
+  );
+
+  // Serve a feature image
+  fastify.get<{ Params: { mapSlug: string; featureId: string } }>(
+    "/maps/:mapSlug/features/:featureId/image",
+    async (req, reply) => {
+      const mapId = await getMapId(req.userId, req.params.mapSlug);
+      if (!mapId) return reply.status(404).send({ error: "Map not found" });
+
+      const rows = await sql<Row[]>`
+        SELECT image FROM features
+        WHERE id = ${req.params.featureId} AND map_id = ${mapId}
+        LIMIT 1
+      `;
+      const image = rows[0]?.image;
+      if (!image) return reply.status(404).send({ error: "No image" });
+
+      return reply
+        .header("Content-Type", "image/jpeg")
+        .header("Cache-Control", "public, max-age=300")
+        .send(image);
+    },
+  );
+
+  // Delete a feature image
+  fastify.delete<{ Params: { mapSlug: string; featureId: string } }>(
+    "/maps/:mapSlug/features/:featureId/image",
+    async (req, reply) => {
+      const mapId = await getMapId(req.userId, req.params.mapSlug);
+      if (!mapId) return reply.status(404).send({ error: "Map not found" });
+
+      await sql`
+        UPDATE features SET image = NULL
+        WHERE id = ${req.params.featureId} AND map_id = ${mapId}
+      `;
+      return { ok: true };
     },
   );
 }

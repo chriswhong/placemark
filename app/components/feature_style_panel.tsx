@@ -1,4 +1,5 @@
 import { usePersistence } from "app/lib/persistence/context";
+import { useMapSlug } from "app/context/map_slug_context";
 import {
   getMarkerOptions,
   DEFAULT_PIN_SIZE,
@@ -10,11 +11,12 @@ import {
 } from "app/lib/marker_types";
 import { ALL_ICONS, COMMON_ICONS, iconToDataUrl } from "app/lib/icons";
 import debounce from "lodash/debounce";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { HexColorPicker, HexColorInput } from "react-colorful";
 import { Popover as P } from "radix-ui";
-import { selectedFeaturesAtom } from "state/jotai";
+import { EyeOpenIcon, TrashIcon, UploadIcon } from "@radix-ui/react-icons";
+import { activeInteractionAtom, selectedFeaturesAtom } from "state/jotai";
 import type { JsonValue } from "type-fest";
 import type { IWrappedFeature } from "types";
 import { GeometryIcon } from "./panels/feature_editor/feature_editor_folder/items";
@@ -662,6 +664,7 @@ function FeatureStylePanelInner({
 }) {
   const rep = usePersistence();
   const transact = rep.useTransact();
+  const setInteraction = useSetAtom(activeInteractionAtom);
 
   const isPoint = wrappedFeature.feature.geometry?.type === "Point";
   const isLine =
@@ -685,6 +688,14 @@ function FeatureStylePanelInner({
 
   const emojiOpts = markerOptions.type === "emoji" ? markerOptions : null;
   const [localEmojiSize, setLocalEmojiSize] = useState(emojiOpts?.size ?? DEFAULT_EMOJI_SIZE);
+
+  const mapSlug = useMapSlug();
+  const hasImage = !!(wrappedFeature as unknown as Record<string, unknown>)._hasImage || !!props._hasImage;
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageVersion, setImageVersion] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const interactionType = typeof props["interaction-type"] === "string" ? props["interaction-type"] : "none";
 
   const [localLineWidth, setLocalLineWidth] = useState(typeof props["stroke-width"] === "number" ? props["stroke-width"] : 2);
   const [localLineOpacity, setLocalLineOpacity] = useState(typeof props["stroke-opacity"] === "number" ? props["stroke-opacity"] : 1);
@@ -777,6 +788,63 @@ function FeatureStylePanelInner({
         rows={2}
         className="block w-full text-sm border rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-white border-gray-200 dark:border-gray-700 resize-none focus:outline-none focus:ring-1 focus:ring-purple-500"
       />
+
+      {/* Feature image */}
+      <div className="flex flex-col gap-1.5">
+        {hasImage && (
+          <div className="relative rounded overflow-hidden border border-gray-200 dark:border-gray-700">
+            <img
+              src={`/api/maps/${mapSlug}/features/${wrappedFeature.id}/image?v=${imageVersion}`}
+              alt=""
+              className="w-full h-28 object-cover"
+            />
+            <button
+              onClick={async () => {
+                await fetch(`/api/maps/${mapSlug}/features/${wrappedFeature.id}/image`, { method: "DELETE" });
+                setProps({ _hasImage: false as unknown as JsonValue });
+                setImageVersion((v) => v + 1);
+              }}
+              className="absolute top-1 right-1 p-1 rounded-full bg-white/90 border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-300 transition-colors"
+              title="Remove image"
+            >
+              <TrashIcon className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            setImageUploading(true);
+            try {
+              const res = await fetch(`/api/maps/${mapSlug}/features/${wrappedFeature.id}/image`, {
+                method: "PUT",
+                headers: { "Content-Type": file.type },
+                body: file,
+              });
+              if (res.ok) {
+                setProps({ _hasImage: true as unknown as JsonValue });
+                setImageVersion((v) => v + 1);
+              }
+            } finally {
+              setImageUploading(false);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }
+          }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={imageUploading}
+          className="flex items-center justify-center gap-1.5 w-full text-xs py-1.5 rounded border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+        >
+          <UploadIcon className="w-3 h-3" />
+          {imageUploading ? "Uploading…" : hasImage ? "Replace image" : "Add image"}
+        </button>
+      </div>
 
       {/* Style */}
       <div className="flex flex-col gap-2">
@@ -983,6 +1051,61 @@ function FeatureStylePanelInner({
           </div>
         )}
       </div>
+
+      {/* Interaction — point features only */}
+      {isPoint && (
+        <div className="flex flex-col gap-2">
+          <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+            Interaction
+          </div>
+
+          {/* Interaction type switcher */}
+          <div className="flex rounded overflow-hidden border border-gray-200 dark:border-gray-700">
+            {(["none", "popup", "tooltip", "panel"] as const).map((type, i) => (
+              <button
+                key={type}
+                onClick={() => setProps({ "interaction-type": type })}
+                className={`flex-1 text-xs py-1 px-1.5 transition-colors capitalize ${
+                  i > 0 ? "border-l border-gray-200 dark:border-gray-700" : ""
+                } ${
+                  interactionType === type
+                    ? "bg-purple-600 text-white"
+                    : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                }`}
+              >
+                {type === "none" ? "None" : type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {interactionType !== "none" && (
+            <>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-snug">
+                Uses the feature name, description, and image above. Description supports markdown.
+              </p>
+              <button
+                onClick={() => {
+                  const geom = wrappedFeature.feature.geometry;
+                  if (!geom || geom.type !== "Point") return;
+                  setInteraction({
+                    featureId: wrappedFeature.id,
+                    type: interactionType as "popup" | "tooltip" | "panel",
+                    name,
+                    text: description,
+                    hasImage: hasImage,
+                    screenX: window.innerWidth / 2,
+                    screenY: window.innerHeight / 2 - 60,
+                  });
+                }}
+                className="flex items-center justify-center gap-1.5 w-full text-xs py-1.5 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-purple-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+              >
+                <EyeOpenIcon className="w-3 h-3" />
+                Preview {interactionType}
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

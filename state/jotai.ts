@@ -166,6 +166,20 @@ export const scaleUnitAtom = atomWithStorage<ScaleUnit>(
 export const scaleVisibleAtom = atom(false);
 export const zoomControlVisibleAtom = atom(false);
 
+// Interaction state for preview mode
+export interface ActiveInteraction {
+  featureId: string;
+  type: "popup" | "tooltip" | "panel";
+  name: string;
+  text: string;
+  hasImage: boolean;
+  /** Screen coordinates for popup/tooltip positioning */
+  screenX: number;
+  screenY: number;
+}
+
+export const activeInteractionAtom = atom<ActiveInteraction | null>(null);
+
 export const addMetadataWithGeocoderAtom = atomWithStorage(
   "addMetadataWithGeocoder",
   false,
