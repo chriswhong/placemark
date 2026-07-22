@@ -38,9 +38,10 @@ export const Dialogs = memo(function Dialogs() {
 
   const content = match(dialog)
     .with(null, () => null)
-    .with({ type: "import" }, (modal) => (
-      <ImportDialog modal={modal} onClose={onClose} />
-    ))
+    .with({ type: "import" }, (modal) => {
+      dialogSize = "md";
+      return <ImportDialog modal={modal} onClose={onClose} />;
+    })
     .with({ type: "import_notes" }, (modal) => (
       <ImportNotesDialog modal={modal} onClose={onClose} />
     ))

@@ -38,9 +38,9 @@ export type AnyMarkerOptions = CircleMarkerOptions | PinMarkerOptions | EmojiMar
 // Defaults
 // ---------------------------------------------------------------------------
 
-export const DEFAULT_CIRCLE_FILL = "#7c3aed"; // purple-700 (kept in sync with purple900)
+export const DEFAULT_CIRCLE_FILL = "#12312c";
 export const DEFAULT_CIRCLE_STROKE = "#ffffff";
-export const DEFAULT_MARKER_SIZE = 8;
+export const DEFAULT_MARKER_SIZE = 5;
 export const DEFAULT_STROKE_WIDTH = 1;
 export const DEFAULT_ICON_COLOR = "#ffffff";
 

@@ -12,6 +12,7 @@ import { MapContext } from "app/context/map_context";
 import { MapSlugContext, useMapSlug } from "app/context/map_slug_context";
 import { useImportFile, useImportString } from "app/hooks/use_import";
 import { DEFAULT_IMPORT_OPTIONS, detectType } from "app/lib/convert";
+import { groupFiles } from "app/lib/group_files";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { usePersistence } from "app/lib/persistence/context";
 import { ChevronLeftIcon, Cross2Icon, Pencil2Icon } from "@radix-ui/react-icons";
@@ -647,6 +648,7 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
     setSearchParams("?preview=true");
   }, [setSearchParams]);
 
+  const setDialogState = useSetAtom(dialogAtom);
   const setInteraction = useSetAtom(activeInteractionAtom);
   const exitPreview = useCallback(() => {
     setInteraction(null);
@@ -725,10 +727,30 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
                     </div>
                   </div>
                   <MapDescriptionEditor />
-                  <div className="px-3 pt-2 shrink-0">
+                  <div className="flex items-center justify-between px-3 pt-2 shrink-0">
                     <span className="text-[10px] font-semibold text-[#8fa8a2] uppercase tracking-wide">
                       Features
                     </span>
+                    <button
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.multiple = true;
+                        input.accept = ".geojson,.json,.kml,.kmz,.gpx,.csv,.xlsx,.xls,.topojson,.shp,.wkt,.tcx,.osm,.pbf,.fgb,.zip";
+                        input.onchange = () => {
+                          if (input.files?.length) {
+                            setDialogState({
+                              type: "import",
+                              files: groupFiles(Array.from(input.files)),
+                            });
+                          }
+                        };
+                        input.click();
+                      }}
+                      className="text-[10px] font-semibold text-[#1f7a6c] hover:text-[#12312c] transition-colors uppercase tracking-wide"
+                    >
+                      + Import
+                    </button>
                   </div>
                   <FeatureEditorFolderInner />
                 </div>

@@ -5,7 +5,7 @@ import {
   ResetIcon,
   ShuffleIcon,
 } from "@radix-ui/react-icons";
-import { flattenRoot } from "app/hooks/use_import";
+import { flattenResult } from "app/components/dialogs/import_utils";
 import {
   DEFAULT_EXPORT_GEOJSON_OPTIONS,
   DEFAULT_IMPORT_OPTIONS,
@@ -241,29 +241,15 @@ function convertResultToExportInput(
 ): Pick<Data, "featureMap" | "folderMap"> {
   const featureMap: Data["featureMap"] = new Map();
   const folderMap: Data["folderMap"] = new Map();
-  switch (result.type) {
-    case "geojson": {
-      const { features } = result.geojson;
-      for (const feature of features) {
-        const id = newFeatureId();
-        featureMap.set(id, {
-          feature,
-          at: "a0",
-          folderId: null,
-          id,
-        });
-      }
-      break;
-    }
-    case "root": {
-      const flat = flattenRoot(result.root, [], [], null);
-      for (const feature of flat.putFeatures) {
-        featureMap.set(feature.id, feature);
-      }
-      for (const folder of flat.putFolders) {
-        folderMap.set(folder.id, folder);
-      }
-    }
+  const fc = flattenResult(result);
+  for (const feature of fc.features) {
+    const id = newFeatureId();
+    featureMap.set(id, {
+      feature,
+      at: "a0",
+      folderId: null,
+      id,
+    });
   }
   return { featureMap, folderMap };
 }

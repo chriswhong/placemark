@@ -12,7 +12,6 @@ import { newFeatureId } from "app/lib/id";
 import { usePersistence } from "app/lib/persistence/context";
 import {
   fMoment,
-  type Moment,
   type MomentInput,
 } from "app/lib/persistence/moment";
 import { pluralize, truncate } from "app/lib/utils";
@@ -28,7 +27,6 @@ import { type Data, dataAtom, fileInfoAtom } from "state/jotai";
 import type {
   Feature,
   FeatureCollection,
-  IFolder,
   IWrappedFeature,
 } from "types";
 
@@ -36,11 +34,29 @@ import type {
  * Creates the _input_ to a transact() operation,
  * given some imported result.
  */
+export interface PropertyMapping {
+  nameKey: string;
+  descKey: string;
+}
+
+function applyPropertyMapping(feature: Feature, mapping?: PropertyMapping): Feature {
+  if (!mapping || (!mapping.nameKey && !mapping.descKey)) return feature;
+  const props = { ...(feature.properties ?? {}) };
+  if (mapping.nameKey && mapping.nameKey !== "name" && props[mapping.nameKey] !== undefined) {
+    props.name = String(props[mapping.nameKey]);
+  }
+  if (mapping.descKey && mapping.descKey !== "description" && props[mapping.descKey] !== undefined) {
+    props.description = String(props[mapping.descKey]);
+  }
+  return { ...feature, properties: props };
+}
+
 function resultToTransact({
   result,
   file,
   track,
   existingFolderId,
+  propertyMapping,
 }: {
   result: ConvertResult;
   file: Pick<File, "name">;
@@ -51,98 +67,53 @@ function resultToTransact({
     },
   ];
   existingFolderId?: string | undefined;
+  propertyMapping?: PropertyMapping;
 }): Partial<MomentInput> {
-  const folderId = newFeatureId();
+  // Flatten any root/folder structure into a plain feature list
+  const fc =
+    result.type === "geojson"
+      ? result.geojson
+      : {
+          type: "FeatureCollection" as const,
+          features: flattenRootFeatures(result.root),
+        };
 
-  /**
-   * If someone's provided a folder to put this in,
-   * don't generate a new one. Basically, this is for pasting
-   * features into a folder.
-   */
-  const putFolders: MomentInput["putFolders"] = existingFolderId
-    ? []
-    : [
-        {
-          name: file?.name || "Imported file",
-          visibility: true,
-          id: folderId,
-          expanded: true,
-          locked: false,
-          folderId: null,
-        },
-      ];
-
-  switch (result.type) {
-    case "geojson": {
-      const { features } = result.geojson;
-      const ats = generateNKeysBetween(null, null, features.length);
-      return {
-        note: `Imported ${file?.name ? file.name : "a file"}`,
-        track: track,
-        putFolders,
-        putFeatures: result.geojson.features.map((feature, i) => {
-          return {
-            at: ats[i],
-            folderId: existingFolderId || folderId,
-            id: newFeatureId(),
-            feature,
-          };
-        }),
-      };
-    }
-    case "root": {
-      // In the (rare) case in which someone imported
-      // something with a root, then import it in its original
-      // structure.
-      const flat = flattenRoot(result.root, [], [], null);
-      return flat;
-    }
-  }
-}
-
-export function flattenRoot(
-  root: Root | Folder,
-  features: IWrappedFeature[],
-  folders: IFolder[],
-  parentFolder: string | null,
-): Pick<Moment, "note" | "putFolders" | "putFeatures"> {
-  // TODO: find a start key here and use that as the start, not null.
-  const ats = generateNKeysBetween(null, null, root.children.length);
-  for (let i = 0; i < root.children.length; i++) {
-    const child = root.children[i];
-    switch (child.type) {
-      case "Feature": {
-        features.push({
-          at: ats[i],
-          folderId: parentFolder,
-          id: newFeatureId(),
-          feature: child,
-        });
-        break;
-      }
-      case "folder": {
-        const id = newFeatureId();
-        folders.push({
-          at: ats[i],
-          folderId: parentFolder,
-          id,
-          expanded: child.meta.visibility !== "0",
-          locked: false,
-          visibility: true,
-          name: (child.meta.name as string) || "Folder",
-        });
-        flattenRoot(child, features, folders, id);
-        break;
-      }
-    }
-  }
+  const { features } = fc;
+  const ats = generateNKeysBetween(null, null, features.length);
 
   return {
-    note: "Imported a file",
-    putFolders: folders,
-    putFeatures: features,
+    note: `Imported ${file?.name ? file.name : "a file"}`,
+    track: track,
+    putFolders: [],
+    putFeatures: features.map((feature, i) => {
+      return {
+        at: ats[i],
+        folderId: existingFolderId ?? null,
+        id: newFeatureId(),
+        feature: applyPropertyMapping(feature, propertyMapping),
+      };
+    }),
   };
 }
+
+/**
+ * Recursively extract all features from a Root/Folder tree,
+ * discarding the folder hierarchy.
+ */
+function flattenRootFeatures(
+  root: Root | Folder,
+  features: Feature[] = [],
+): Feature[] {
+  for (const child of root.children) {
+    if (child.type === "Feature") {
+      features.push(child);
+    } else if (child.type === "folder") {
+      flattenRootFeatures(child, features);
+    }
+  }
+  return features;
+}
+
 
 export function useImportString() {
   const rep = usePersistence();
@@ -313,6 +284,7 @@ export function useImportFile() {
       file: FileWithHandle,
       options: ImportOptions,
       progress: RawProgressCb,
+      propertyMapping?: PropertyMapping,
     ) => {
       const arrayBuffer = await file.arrayBuffer();
 
@@ -354,6 +326,7 @@ export function useImportFile() {
                   format: options.type,
                 },
               ],
+              propertyMapping,
             });
             await transact(moment);
             return result;
@@ -376,7 +349,7 @@ export function useImportShapefile() {
      * Convert a given file or string and add it to the
      * current map content.
      */
-    async (file: ShapefileGroup, options: ImportOptions) => {
+    async (file: ShapefileGroup, options: ImportOptions, propertyMapping?: PropertyMapping) => {
       const either = (await Shapefile.forwardLoose(file, options)).map(
         async (result) => {
           await transact(
@@ -389,6 +362,7 @@ export function useImportShapefile() {
                   format: "shapefile",
                 },
               ],
+              propertyMapping,
             }),
           );
           return result;

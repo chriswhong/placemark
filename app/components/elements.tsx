@@ -179,8 +179,10 @@ export const StyledDialogOverlay = classed(Dialog.Overlay)(overlayClasses);
 const styledDialogContent = ({ size = "sm" }: { size?: B3Size }) =>
   clsx(
     {
-      "p-4": size === "sm",
+      "p-4": size === "sm" || size === "md",
       "p-0": size === "xs",
+      "sm:max-w-lg": size !== "md",
+      "sm:max-w-xl": size === "md",
     },
     `fixed inline-block w-full
       max-h-screen
@@ -189,7 +191,7 @@ const styledDialogContent = ({ size = "sm" }: { size?: B3Size }) =>
       bg-white dark:bg-gray-900
       dark:text-white
       shadow-md dark:shadow-none dark:border dark:border-black
-      sm:rounded sm:align-middle sm:max-w-lg
+      sm:rounded sm:align-middle
       left-2/4 top-2/4 -translate-x-1/2 -translate-y-1/2
       overflow-y-auto squidmaps-scrollbar
       z-50

@@ -454,7 +454,7 @@ interface PinPreset {
 
 const CIRCLE_PRESETS: CirclePreset[] = [
   // Classic cartographic palette — high contrast, map-friendly
-  { fill: "#7c3aed", stroke: "#ffffff", iconColor: "#ffffff" },  // Purple (default)
+  { fill: "#12312c", stroke: "#ffffff", iconColor: "#ffffff" },  // Dark green (default)
   { fill: "#dc2626", stroke: "#ffffff", iconColor: "#ffffff" },  // Vermilion
   { fill: "#ea580c", stroke: "#ffffff", iconColor: "#ffffff" },  // Burnt orange
   { fill: "#d97706", stroke: "#ffffff", iconColor: "#ffffff" },  // Amber

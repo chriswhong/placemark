@@ -28,6 +28,11 @@ import {
   purple900,
   WHITE,
 } from "app/lib/constants";
+import {
+  DEFAULT_CIRCLE_FILL,
+  DEFAULT_CIRCLE_STROKE,
+  DEFAULT_MARKER_SIZE,
+} from "app/lib/marker_types";
 import type { IDMap } from "app/lib/id_mapper";
 import loadAndAugmentStyle, {
   DECK_EPHEMERAL_ID,
@@ -677,10 +682,9 @@ export default class PMap {
           const props = (f.properties ?? {}) as Record<string, unknown>;
           const type = f.geometry?.type;
           const isPoint = type === "Point" || type === "MultiPoint";
-          const colorStr = isPoint
-            ? (props["fill"] as string | undefined)
-            : (props["fill"] as string | undefined);
-          const color = parseColor(colorStr ?? null, defaultColor);
+          const fillFallback = isPoint ? DEFAULT_CIRCLE_FILL : defaultColor;
+          const colorStr = props["fill"] as string | undefined;
+          const color = parseColor(colorStr ?? null, fillFallback);
           const rawOpacity =
             !isPoint && (type === "Polygon" || type === "MultiPolygon")
               ? props["fill-opacity"]
@@ -696,9 +700,12 @@ export default class PMap {
         getLineColor: (f: GeoJSON.Feature) => {
           if (selectionIds.has(f.id as RawId)) return SELECTED;
           const props = (f.properties ?? {}) as Record<string, unknown>;
+          const type = f.geometry?.type;
+          const isPoint = type === "Point" || type === "MultiPoint";
+          const strokeFallback = isPoint ? DEFAULT_CIRCLE_STROKE : defaultColor;
           const color = parseColor(
             (props["stroke"] as string | undefined) ?? null,
-            defaultColor,
+            strokeFallback,
           );
           const opacity = typeof props["stroke-opacity"] === "number" ? props["stroke-opacity"] : 1;
           color[3] = Math.round(opacity * 255);
@@ -713,7 +720,7 @@ export default class PMap {
         lineWidthUnits: "pixels" as const,
         getPointRadius: (f: GeoJSON.Feature) => {
           const props = (f.properties ?? {}) as Record<string, unknown>;
-          return typeof props["marker-size"] === "number" ? props["marker-size"] : 8;
+          return typeof props["marker-size"] === "number" ? props["marker-size"] : DEFAULT_MARKER_SIZE;
         },
         pointRadiusUnits: "pixels" as const,
         updateTriggers: {
