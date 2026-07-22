@@ -3,7 +3,7 @@ import { MapContext } from "app/context/map_context";
 import { linearGradient } from "app/lib/color";
 import { SCALE_UNITS, type ScaleUnit, zScaleUnit } from "app/lib/constants";
 import { usePersistence } from "app/lib/persistence/context";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import last from "lodash/last";
 import throttle from "lodash/throttle";
 import { Popover as P } from "radix-ui";
@@ -14,7 +14,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import { scaleUnitAtom, TabOption, tabAtom } from "state/jotai";
+import { scaleUnitAtom, scaleVisibleAtom, TabOption, tabAtom } from "state/jotai";
 import { match } from "ts-pattern";
 import type { ISymbolizationCategorical, ISymbolizationRamp } from "types";
 import {
@@ -326,9 +326,11 @@ export function Legend() {
     ))
     .exhaustive();
 
+  const scaleVisible = useAtomValue(scaleVisibleAtom);
+
   return (
     <div className="space-y-1 absolute bottom-0 right-10 w-48">
-      <ScaleControl />
+      {scaleVisible && <ScaleControl />}
       <LegendContainer>{legend}</LegendContainer>
     </div>
   );

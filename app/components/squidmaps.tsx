@@ -18,7 +18,8 @@ import { Switch, Tooltip as T } from "radix-ui";
 import { TContent, StyledTooltipArrow } from "./elements";
 import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { dialogAtom, layerConfigAtom, selectedFeaturesAtom } from "state/jotai";
+import { dialogAtom, layerConfigAtom, scaleUnitAtom, scaleVisibleAtom, selectedFeaturesAtom, zoomControlVisibleAtom } from "state/jotai";
+import { SCALE_UNITS, zScaleUnit } from "app/lib/constants";
 import { match } from "ts-pattern";
 import { useSearchParams } from "wouter";
 import Modes from "app/components/modes";
@@ -111,6 +112,9 @@ const BASEMAP_OPTIONS = [
 
 function BasemapSelector() {
   const [layerConfigs, setLayerConfigs] = useAtom(layerConfigAtom);
+  const [scaleVisible, setScaleVisible] = useAtom(scaleVisibleAtom);
+  const [scaleUnit, setScaleUnit] = useAtom(scaleUnitAtom);
+  const [zoomControlVisible, setZoomControlVisible] = useAtom(zoomControlVisibleAtom);
 
   // Get current layer config (single entry map)
   const [layerId, currentConfig] = [...layerConfigs.entries()][0];
@@ -181,6 +185,50 @@ function BasemapSelector() {
           Show map labels
         </span>
       </label>
+
+      <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-4 mb-2">Controls</div>
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <Switch.Root
+          checked={zoomControlVisible}
+          onCheckedChange={setZoomControlVisible}
+          className="w-[30px] h-[17px] rounded-full bg-[#c7dbd5] data-[state=checked]:bg-[#1f7a6c] transition-colors shrink-0 relative"
+        >
+          <Switch.Thumb className="block w-[13px] h-[13px] rounded-full bg-white shadow-sm transition-transform translate-x-[2px] data-[state=checked]:translate-x-[15px]" />
+        </Switch.Root>
+        <span className="text-xs text-[#5b7d76] font-medium">
+          Zoom controls
+        </span>
+      </label>
+      <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+        <Switch.Root
+          checked={scaleVisible}
+          onCheckedChange={setScaleVisible}
+          className="w-[30px] h-[17px] rounded-full bg-[#c7dbd5] data-[state=checked]:bg-[#1f7a6c] transition-colors shrink-0 relative"
+        >
+          <Switch.Thumb className="block w-[13px] h-[13px] rounded-full bg-white shadow-sm transition-transform translate-x-[2px] data-[state=checked]:translate-x-[15px]" />
+        </Switch.Root>
+        <span className="text-xs text-[#5b7d76] font-medium">
+          Scale bar
+        </span>
+      </label>
+      {scaleVisible && (
+        <div className="ml-[38px] mt-1.5">
+          <select
+            value={scaleUnit}
+            onChange={(e) => {
+              const data = zScaleUnit.safeParse(e.target.value);
+              if (data.success) setScaleUnit(data.data);
+            }}
+            className="text-xs text-[#5b7d76] bg-white border border-[#dde6e2] rounded px-1.5 py-0.5 outline-none focus:border-[#1f7a6c]"
+          >
+            {SCALE_UNITS.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit.charAt(0).toUpperCase() + unit.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }
@@ -261,23 +309,21 @@ function PreviewTitleOverlay({ mapTitle, username }: { mapTitle: string; usernam
   const description = meta.type === "memory" ? meta.description ?? "" : "";
 
   return (
-    <div className="absolute top-4 left-4 z-10">
-      <div
-        className="bg-white/90 backdrop-blur-sm rounded-xl px-5 py-4 border border-[#dde6e2] max-w-sm"
-        style={{ boxShadow: panelShadow }}
-      >
-        <div className="font-semibold text-[#12312c] text-lg leading-snug">
-          {mapTitle}
-        </div>
-        <div className="text-sm text-[#8fa8a2]">
-          @{username}
-        </div>
-        {description && (
-          <div className="text-sm text-[#5b7d76] mt-2 leading-relaxed">
-            {description}
-          </div>
-        )}
+    <div
+      className="bg-white/90 backdrop-blur-sm rounded-xl px-5 py-4 border border-[#dde6e2] max-w-sm"
+      style={{ boxShadow: panelShadow }}
+    >
+      <div className="font-semibold text-[#12312c] text-lg leading-snug">
+        {mapTitle}
       </div>
+      <div className="text-sm text-[#8fa8a2]">
+        @{username}
+      </div>
+      {description && (
+        <div className="text-sm text-[#5b7d76] mt-2 leading-relaxed">
+          {description}
+        </div>
+      )}
     </div>
   );
 }
@@ -353,17 +399,15 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
 
             {isPreview ? (
               <>
-                {/* Preview mode: title overlay */}
-                <PreviewTitleOverlay
-                  mapTitle={mapTitle}
-                  username={username}
-                />
-
-                {/* Preview mode: back to editor button */}
-                <div className="absolute top-4 right-4 z-10">
+                {/* Preview mode: title + back to editor */}
+                <div className="absolute top-4 left-4 z-10 flex items-start gap-2">
+                  <PreviewTitleOverlay
+                    mapTitle={mapTitle}
+                    username={username}
+                  />
                   <button
                     onClick={exitPreview}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-[#dde6e2] text-[#5b7d76] hover:bg-white hover:text-[#12312c] transition-colors font-semibold"
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-[#dde6e2] text-[#5b7d76] hover:bg-white hover:text-[#12312c] transition-colors font-semibold mt-1"
                     style={{ boxShadow: panelShadow }}
                   >
                     <Pencil2Icon className="w-3 h-3" />

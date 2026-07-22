@@ -163,6 +163,9 @@ export const scaleUnitAtom = atomWithStorage<ScaleUnit>(
   "imperial",
 );
 
+export const scaleVisibleAtom = atom(false);
+export const zoomControlVisibleAtom = atom(false);
+
 export const addMetadataWithGeocoderAtom = atomWithStorage(
   "addMetadataWithGeocoder",
   false,

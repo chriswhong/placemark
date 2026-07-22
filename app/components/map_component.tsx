@@ -31,6 +31,7 @@ import {
   Mode,
   modeAtom,
   selectedFeaturesAtom,
+  zoomControlVisibleAtom,
 } from "state/jotai";
 import type { DragTarget, HandlerContext, IWrappedFeature } from "types";
 import { SYMBOLIZATION_NONE } from "types";
@@ -183,6 +184,18 @@ export const MapComponent = memo(function MapComponent({
     };
     // eslint-disable-next-line
   }, [mapRef, mapDivRef, setMap]);
+
+  const zoomControlVisible = useAtomValue(zoomControlVisibleAtom);
+  useEffect(() => {
+    if (!map?.map) return;
+    const container = map.map.getContainer();
+    // NavigationControl's group contains the zoom-in button
+    const zoomBtn = container.querySelector(".maplibregl-ctrl-zoom-in");
+    const navCtrl = zoomBtn?.closest(".maplibregl-ctrl-group") as HTMLElement | null;
+    if (navCtrl) {
+      navCtrl.style.display = zoomControlVisible ? "" : "none";
+    }
+  }, [map, zoomControlVisible]);
 
   useEffect(
     function mapSetDataMethods() {

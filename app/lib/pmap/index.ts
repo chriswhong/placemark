@@ -399,7 +399,7 @@ export default class PMap {
       }),
       controlsCorner,
     );
-    map.addControl(new maplibregl.NavigationControl({}), controlsCorner);
+    map.addControl(new maplibregl.NavigationControl({}), "top-right");
     map.addControl(
       new maplibregl.AttributionControl({
         compact: true,
