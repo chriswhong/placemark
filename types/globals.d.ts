@@ -1,55 +1,60 @@
 /// <reference types="react/next" />
+import type maplibregl from "maplibre-gl";
 
-type Opaque<Type, Token = unknown> = Type & { readonly __opaque__: Token };
+declare global {
+  type Opaque<Type, Token = unknown> = Type & { readonly __opaque__: Token };
 
-type BBox4 = [number, number, number, number];
+  type BBox4 = [number, number, number, number];
 
-type Pos2 = [number, number];
-type RGBA = [number, number, number, number];
+  type Pos2 = [number, number];
+  type RGBA = [number, number, number, number];
 
-type VertexId = {
-  type: "vertex";
-  featureId: number;
-  vertex: number;
-};
+  type VertexId = {
+    type: "vertex";
+    featureId: number;
+    vertex: number;
+  };
 
-type FeatureId = {
-  type: "feature";
-  featureId: number;
-};
+  type FeatureId = {
+    type: "feature";
+    featureId: number;
+  };
 
-type MidpointId = {
-  type: "midpoint";
-  featureId: number;
-  vertex: number;
-};
+  type MidpointId = {
+    type: "midpoint";
+    featureId: number;
+    vertex: number;
+  };
 
-type Id = FeatureId | VertexId | MidpointId;
+  type Id = FeatureId | VertexId | MidpointId;
 
-// Mapbox-land ID system
-type RawId = Opaque<number, "RawId">;
+  // Mapbox-land ID system
+  type RawId = Opaque<number, "RawId">;
 
-// React-land ID system
-type StringId = string;
+  // React-land ID system
+  type StringId = string;
 
-type LayerScopedEvent = mapboxgl.MapMouseEvent & {
-  features?: mapboxgl.MapboxGeoJSONFeature[];
-} & mapboxgl.EventData;
+  type LayerScopedEvent = maplibregl.MapMouseEvent & {
+    features?: maplibregl.MapGeoJSONFeature[];
+  };
 
-type BothHandler = (
-  arg0: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent,
-) => Promisable<void>;
+  type BothHandler = (
+    arg0: maplibregl.MapMouseEvent | maplibregl.MapTouchEvent,
+  ) => Promisable<void>;
 
-type TouchHandler = (arg0: mapboxgl.MapTouchEvent) => Promisable<void>;
+  type TouchHandler = (arg0: maplibregl.MapTouchEvent) => Promisable<void>;
 
-type Handlers = {
-  click: BothHandler;
-  move: BothHandler;
-  down: BothHandler;
-  touchstart?: TouchHandler;
-  touchmove?: TouchHandler;
-  touchend?: TouchHandler;
-  up: BothHandler;
-  double: BothHandler;
-  enter: () => Promisable<void>;
-};
+  type Handlers = {
+    click: BothHandler;
+    move: BothHandler;
+    down: BothHandler;
+    touchstart?: TouchHandler;
+    touchmove?: TouchHandler;
+    touchend?: TouchHandler;
+    up: BothHandler;
+    double: BothHandler;
+    enter: () => Promisable<void>;
+  };
+}
+
+export {};

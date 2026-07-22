@@ -122,7 +122,7 @@ function LegendCategorical({
 }
 
 function getScale(
-  map: mapboxgl.Map,
+  map: maplibregl.Map,
   options: {
     unit: ScaleUnit;
   },
@@ -136,9 +136,15 @@ function getScale(
   // found between the two coordinates.
   const maxWidth = MAX_WIDTH;
 
-  // These are "internal" so we have to cast to any.
-  const y = (map as any)._containerHeight / 2;
-  const x = (map as any)._containerWidth / 2 - maxWidth / 2;
+  // Use public API for container dimensions
+  const container = map.getContainer();
+  const containerHeight = container.clientHeight;
+  const containerWidth = container.clientWidth;
+  if (!containerHeight || !containerWidth) {
+    return { maxDistance: 1, unit: options.unit === "imperial" ? "mile" : "km" };
+  }
+  const y = containerHeight / 2;
+  const x = containerWidth / 2 - maxWidth / 2;
   const left = map.unproject([x, y]);
   const right = map.unproject([x + maxWidth, y]);
   const maxMeters = left.distanceTo(right);
@@ -201,7 +207,7 @@ function ScaleControl() {
 
   useEffect(() => {
     if (map) {
-      const onMove = throttle((e: mapboxgl.MapboxEvent) => {
+      const onMove = throttle((e: maplibregl.MapLibreEvent) => {
         startTransition(() => {
           setMeasurement(
             getScale(e.target, {

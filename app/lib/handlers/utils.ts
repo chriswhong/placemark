@@ -9,7 +9,7 @@ import type {
   LineString as TurfLineString,
   MultiLineString as TurfMultiLineString,
 } from "geojson";
-import type { MapMouseEvent, MapTouchEvent } from "mapbox-gl";
+import type { MapMouseEvent, MapTouchEvent } from "maplibre-gl";
 import { toast } from "react-hot-toast";
 import { type ModeWithOptions, USelection } from "state";
 import type { Data, Sel } from "state/jotai";
@@ -37,7 +37,7 @@ import { DECK_PIN_LAYER_ID, DECK_EMOJI_LAYER_ID } from "../pmap";
 type PutFeature = MomentInput["putFeatures"][0];
 
 export function getMapCoord(
-  e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent,
+  e: maplibregl.MapMouseEvent | maplibregl.MapTouchEvent,
 ) {
   return e6position(e.lngLat.toArray(), 7) as Pos2;
 }
@@ -84,7 +84,7 @@ export function createOrUpdateFeature({
 }
 
 const getNeighborCandidate = (
-  point: mapboxgl.Point,
+  point: maplibregl.Point,
   pmap: PMap,
   idMap: IDMap,
   excludeFeatureId?: string,

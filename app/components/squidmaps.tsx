@@ -2,7 +2,6 @@ import { Dialogs } from "app/components/dialogs";
 import Drop from "app/components/drop";
 import { MapComponent } from "app/components/map_component";
 import { MapTitleBar } from "app/components/map_title_bar";
-import { env } from "app/lib/env_client";
 import type PMap from "app/lib/pmap";
 import "styles/globals.css";
 import "core-js/features/array/at";
@@ -102,19 +101,12 @@ function UrlAPI() {
 }
 
 const BASEMAP_OPTIONS = [
-  { id: "streets", name: "Streets", url: "mapbox://styles/mapbox/streets-v12" },
-  { id: "light", name: "Light", url: "mapbox://styles/mapbox/light-v11" },
-  { id: "dark", name: "Dark", url: "mapbox://styles/mapbox/dark-v11" },
-  { id: "satellite", name: "Satellite", url: "mapbox://styles/mapbox/satellite-streets-v12" },
-  { id: "outdoors", name: "Outdoors", url: "mapbox://styles/mapbox/outdoors-v12" },
+  { id: "bright", name: "Bright", url: "https://tiles.openfreemap.org/styles/bright", thumb: "/basemap-bright.svg" },
+  { id: "positron", name: "Positron", url: "https://tiles.openfreemap.org/styles/positron", thumb: "/basemap-positron.svg" },
+  { id: "dark", name: "Dark", url: "https://tiles.openfreemap.org/styles/dark", thumb: "/basemap-dark.svg" },
+  { id: "liberty", name: "Liberty", url: "https://tiles.openfreemap.org/styles/liberty", thumb: "/basemap-liberty.svg" },
+  { id: "fiord", name: "Fiord", url: "https://tiles.openfreemap.org/styles/fiord", thumb: "/basemap-fiord.svg" },
 ] as const;
-
-function basemapThumbnailUrl(styleUrl: string): string {
-  const token = env.MAPBOX_TOKEN;
-  // Extract style path from mapbox:// URL → /mapbox/styles/mapbox/light-v11
-  const stylePath = styleUrl.replace("mapbox://styles/", "");
-  return `https://api.mapbox.com/styles/v1/${stylePath}/static/-73.99,40.735,13,0/120x120@2x?access_token=${token}&attribution=false&logo=false`;
-}
 
 function BasemapSelector() {
   const [layerConfigs, setLayerConfigs] = useAtom(layerConfigAtom);
@@ -158,7 +150,7 @@ function BasemapSelector() {
                 }`}
               >
                 <img
-                  src={basemapThumbnailUrl(opt.url)}
+                  src={opt.thumb}
                   alt={opt.name}
                   className="w-full h-full object-cover"
                   loading="lazy"

@@ -300,3 +300,12 @@ export function getMapboxLayerURL(layer: ILayerConfig) {
     `?optimize=true&access_token=${layer.token}`
   );
 }
+
+export function getStyleURL(layer: ILayerConfig) {
+  // OpenFreeMap and other direct style URLs
+  if (layer.url.startsWith("http")) {
+    return layer.url;
+  }
+  // Legacy mapbox:// protocol URLs
+  return getMapboxLayerURL(layer);
+}

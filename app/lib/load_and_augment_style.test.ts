@@ -1,4 +1,5 @@
 import { validate } from "@mapbox/mapbox-gl-style-spec";
+import type maplibregl from "maplibre-gl";
 import { purple900 } from "app/lib/constants";
 import { exportStyle } from "app/lib/export_style";
 import { NIL_PREVIEW } from "test/helpers";
@@ -41,7 +42,7 @@ describe("makeLayers", () => {
 
     expect(makeLayers(inputs)).toMatchSnapshot();
 
-    const emptyStyle: mapboxgl.Style = {
+    const emptyStyle: maplibregl.StyleSpecification = {
       version: 8,
       glyphs: "https://foo.com/foo{fontstack}/{range}",
       sources: {},
@@ -77,7 +78,7 @@ describe("makeLayers", () => {
     expect(makeLayers(inputs)).toMatchSnapshot();
     expect(exportStyle(ramp)).toMatchSnapshot();
 
-    const emptyStyle: mapboxgl.Style = {
+    const emptyStyle: maplibregl.StyleSpecification = {
       version: 8,
       sources: {},
       layers: [],
@@ -105,7 +106,7 @@ describe("makeLayers", () => {
     } as const;
     expect(exportStyle(categorical)).toMatchSnapshot();
     const layers = makeLayers(inputs);
-    const emptyStyle: mapboxgl.Style = {
+    const emptyStyle: maplibregl.StyleSpecification = {
       version: 8,
       sources: {},
       layers: [],

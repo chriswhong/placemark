@@ -36,7 +36,7 @@ import {
 } from "./geometry";
 
 test("bufferPoint", () => {
-  expect(bufferPoint({ x: 0, y: 0 } as unknown as mapboxgl.Point)).toEqual([
+  expect(bufferPoint({ x: 0, y: 0 } as unknown as maplibregl.Point)).toEqual([
     [-10, -10],
     [10, 10],
   ]);

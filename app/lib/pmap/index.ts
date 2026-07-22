@@ -41,7 +41,7 @@ import loadAndAugmentStyle, {
 import * as d3 from "d3-color";
 import { splitFeatureGroups } from "app/lib/pmap/split_feature_groups";
 import { shallowArrayEqual } from "app/lib/utils";
-import mapboxgl from "mapbox-gl";
+import maplibregl from "maplibre-gl";
 import type {
   Data,
   EphemeralEditingState,
@@ -85,7 +85,7 @@ function buildRoundedRectPath(
   width: number,
   height: number,
   cornerRadius: number,
-  map: mapboxgl.Map,
+  map: maplibregl.Map,
 ): [number, number][] {
   const r = Math.min(cornerRadius, width / 2, height / 2);
   const hw = width / 2;
@@ -109,19 +109,21 @@ function buildRoundedRectPath(
   }
 
   return screenPts.map((p) => {
-    const ll = map.unproject(p as mapboxgl.PointLike);
+    const ll = map.unproject(p as maplibregl.PointLike);
     return [ll.lng, ll.lat];
   });
 }
 
-const MAP_OPTIONS: Omit<mapboxgl.MapboxOptions, "container"> = {
+const MAP_OPTIONS: Omit<maplibregl.MapOptions, "container"> = {
   style: { version: 8, layers: [], sources: {} },
   maxZoom: 26,
   boxZoom: false,
   dragRotate: false,
   attributionControl: false,
   fadeDuration: 0,
-  preserveDrawingBuffer: true,
+  canvasContextAttributes: {
+    preserveDrawingBuffer: true,
+  },
 };
 
 const cursorSvg = (color: string) => {
@@ -134,31 +136,31 @@ const cursorSvg = (color: string) => {
   return div;
 };
 
-type ClickEvent = mapboxgl.MapMouseEvent;
-type MoveEvent = mapboxgl.MapboxEvent;
+type ClickEvent = maplibregl.MapMouseEvent;
+type MoveEvent = maplibregl.MapLibreEvent;
 
 export type PMapHandlers = {
   onClick: (e: ClickEvent) => void;
   onDoubleClick: (e: ClickEvent) => void;
-  onMapMouseUp: (e: mapboxgl.MapMouseEvent) => void;
-  onMapMouseMove: (e: mapboxgl.MapMouseEvent) => void;
-  onMapTouchMove: (e: mapboxgl.MapTouchEvent) => void;
-  onMapMouseDown: (e: mapboxgl.MapMouseEvent) => void;
-  onMapTouchStart: (e: mapboxgl.MapTouchEvent) => void;
-  onMoveEnd: (e: mapboxgl.MapboxEvent) => void;
-  onMapTouchEnd: (e: mapboxgl.MapTouchEvent) => void;
-  onMove: (e: mapboxgl.MapboxEvent) => void;
+  onMapMouseUp: (e: maplibregl.MapMouseEvent) => void;
+  onMapMouseMove: (e: maplibregl.MapMouseEvent) => void;
+  onMapTouchMove: (e: maplibregl.MapTouchEvent) => void;
+  onMapMouseDown: (e: maplibregl.MapMouseEvent) => void;
+  onMapTouchStart: (e: maplibregl.MapTouchEvent) => void;
+  onMoveEnd: (e: maplibregl.MapLibreEvent) => void;
+  onMapTouchEnd: (e: maplibregl.MapTouchEvent) => void;
+  onMove: (e: maplibregl.MapLibreEvent) => void;
 };
 
-const lastValues = new WeakMap<mapboxgl.GeoJSONSource, Feature[]>();
+const lastValues = new WeakMap<maplibregl.GeoJSONSource, Feature[]>();
 
 /**
- * Memoized set data for a mapboxgl.GeoJSONSource. If
+ * Memoized set data for a maplibregl.GeoJSONSource. If
  * the same source is called with the same data,
  * it won't set.
  */
 function mSetData(
-  source: mapboxgl.GeoJSONSource,
+  source: maplibregl.GeoJSONSource,
   newData: Feature[],
   _label: string,
   force?: boolean,
@@ -212,14 +214,14 @@ function collectDashPatterns(features: Feature[]): Map<string, number[]> {
  */
 function buildDashExpression(
   patterns: Map<string, number[]>,
-): mapboxgl.Expression {
-  const cases: (mapboxgl.Expression | number[])[] = [];
+): any {
+  const cases: (any | number[])[] = [];
   for (const [str, arr] of patterns) {
     cases.push(["==", ["get", "stroke-dasharray"], str], ["literal", arr]);
   }
   // Default: solid line
   cases.push(["literal", [1, 0]]);
-  return ["case", ...cases] as mapboxgl.Expression;
+  return ["case", ...cases] as any;
 }
 
 /**
@@ -245,7 +247,7 @@ function getMarkerRadius(f: GeoJSON.Feature): number {
  */
 function deconflictLabels(
   features: GeoJSON.Feature<GeoJSON.Geometry, GeoJSON.GeoJsonProperties>[],
-  map: mapboxgl.Map,
+  map: maplibregl.Map,
 ): GeoJSON.Feature[] {
   const CHAR_W = 7; // approximate width per character at size 13
   const LABEL_H = 16; // approximate line height
@@ -330,7 +332,7 @@ function parseColor(
 }
 
 export default class PMap {
-  map: mapboxgl.Map;
+  map: maplibregl.Map;
   handlers: React.MutableRefObject<PMapHandlers>;
   idMap: IDMap;
 
@@ -338,7 +340,7 @@ export default class PMap {
   lastData: Data | null;
   lastEphemeralState: EphemeralEditingState;
   lastSymbolization: ISymbolization | null;
-  presenceMarkers: Map<IPresence["userId"], mapboxgl.Marker>;
+  presenceMarkers: Map<IPresence["userId"], maplibregl.Marker>;
   lastLayer: LayerConfigMap | null;
   lastPreviewProperty: PreviewProperty;
   overlay: MapboxOverlay;
@@ -367,14 +369,14 @@ export default class PMap {
     previewProperty: PreviewProperty;
     idMap: IDMap;
     initialBounds?: [[number, number], [number, number]] | null;
-    controlsCorner?: Parameters<mapboxgl.Map["addControl"]>[1];
+    controlsCorner?: Parameters<maplibregl.Map["addControl"]>[1];
   }) {
     this.idMap = idMap;
     const positionOptions = {
-      bounds: (initialBounds ?? DEFAULT_MAP_BOUNDS) as mapboxgl.LngLatBoundsLike,
+      bounds: (initialBounds ?? DEFAULT_MAP_BOUNDS) as maplibregl.LngLatBoundsLike,
     };
 
-    const map = new mapboxgl.Map({
+    const map = new maplibregl.Map({
       container: element,
       ...MAP_OPTIONS,
       ...positionOptions,
@@ -388,7 +390,7 @@ export default class PMap {
     map.addControl(this.overlay as any);
 
     map.addControl(
-      new mapboxgl.GeolocateControl({
+      new maplibregl.GeolocateControl({
         showUserLocation: false,
         showAccuracyCircle: false,
         positionOptions: {
@@ -397,9 +399,9 @@ export default class PMap {
       }),
       controlsCorner,
     );
-    map.addControl(new mapboxgl.NavigationControl({}), controlsCorner);
+    map.addControl(new maplibregl.NavigationControl({}), controlsCorner);
     map.addControl(
-      new mapboxgl.AttributionControl({
+      new maplibregl.AttributionControl({
         compact: true,
       }),
     );
@@ -446,7 +448,7 @@ export default class PMap {
     this.handlers.current.onMapMouseDown(e);
   };
 
-  onMapTouchStart = (e: mapboxgl.MapTouchEvent) => {
+  onMapTouchStart = (e: maplibregl.MapTouchEvent) => {
     this.handlers.current.onMapTouchStart(e);
   };
 
@@ -458,7 +460,7 @@ export default class PMap {
     const f = this.lastSelectionEphemeralPoint;
     if (!f || f.geometry?.type !== "Point") return null;
     const [lng, lat] = (f.geometry as GeoJSON.Point).coordinates;
-    const center = this.map.project([lng, lat] as mapboxgl.LngLatLike);
+    const center = this.map.project([lng, lat] as maplibregl.LngLatLike);
     const props = (f.properties ?? {}) as Record<string, unknown>;
     if (props["marker-type"] === "pin") {
       const pinH = typeof props["pin-size"] === "number" ? (props["pin-size"] as number) : DEFAULT_PIN_SIZE;
@@ -509,7 +511,7 @@ export default class PMap {
     }
   };
 
-  onMapTouchEnd = (e: mapboxgl.MapTouchEvent) => {
+  onMapTouchEnd = (e: maplibregl.MapTouchEvent) => {
     this.handlers.current.onMapTouchEnd(e);
   };
 
@@ -528,15 +530,15 @@ export default class PMap {
     }
   };
 
-  onMapMouseMove = (e: mapboxgl.MapMouseEvent) => {
+  onMapMouseMove = (e: maplibregl.MapMouseEvent) => {
     this.handlers.current.onMapMouseMove(e);
   };
 
-  onMapTouchMove = (e: mapboxgl.MapTouchEvent) => {
+  onMapTouchMove = (e: maplibregl.MapTouchEvent) => {
     this.handlers.current.onMapTouchMove(e);
   };
 
-  onMapDoubleClick = (e: mapboxgl.MapMouseEvent) => {
+  onMapDoubleClick = (e: maplibregl.MapMouseEvent) => {
     this.handlers.current.onDoubleClick(e);
   };
 
@@ -545,7 +547,7 @@ export default class PMap {
     for (const presence of presences) {
       const marker =
         this.presenceMarkers.get(presence.userId) ??
-        new mapboxgl.Marker(cursorSvg(colorFromPresence(presence)));
+        new maplibregl.Marker(cursorSvg(colorFromPresence(presence)));
       marker
         .setLngLat([presence.cursorLongitude, presence.cursorLatitude])
         .addTo(this.map);
@@ -580,7 +582,7 @@ export default class PMap {
 
     const lassoSource = this.map.getSource(
       LASSO_SOURCE_NAME,
-    ) as mapboxgl.GeoJSONSource;
+    ) as maplibregl.GeoJSONSource;
 
     if (!lassoSource) {
       // Style hasn't loaded yet; store data so setStyle re-applies it.
@@ -614,8 +616,8 @@ export default class PMap {
       LINE_POLY_TYPES.has(f.geometry?.type ?? "");
 
     // Push line/polygon features to mapbox GL sources
-    const featuresSource = this.map.getSource(FEATURES_SOURCE_NAME) as mapboxgl.GeoJSONSource | undefined;
-    const ephemeralSource = this.map.getSource(EPHEMERAL_SOURCE_NAME) as mapboxgl.GeoJSONSource | undefined;
+    const featuresSource = this.map.getSource(FEATURES_SOURCE_NAME) as maplibregl.GeoJSONSource | undefined;
+    const ephemeralSource = this.map.getSource(EPHEMERAL_SOURCE_NAME) as maplibregl.GeoJSONSource | undefined;
 
     const linePolyFeatures = groups.features.filter(isLineOrPoly);
     const linePolyEphemeral = groups.ephemeral.filter(isLineOrPoly);
@@ -1022,7 +1024,7 @@ export default class PMap {
       symbolization,
       previewProperty,
     });
-    this.map.setStyle(style);
+    this.map.setStyle(style as any);
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -1059,15 +1061,31 @@ export default class PMap {
           return;
         }
 
-        // Draw the mapbox GL canvas (basemap + line/polygon layers)
-        ctx.drawImage(mapCanvas, 0, 0, width, height);
+        // Crop from center of source canvas preserving aspect ratio
+        const srcW = mapCanvas.width;
+        const srcH = mapCanvas.height;
+        const targetRatio = width / height;
+        const srcRatio = srcW / srcH;
+        let sx = 0, sy = 0, sw = srcW, sh = srcH;
+        if (srcRatio > targetRatio) {
+          // Source is wider — crop sides
+          sw = srcH * targetRatio;
+          sx = (srcW - sw) / 2;
+        } else {
+          // Source is taller — crop top/bottom
+          sh = srcW / targetRatio;
+          sy = (srcH - sh) / 2;
+        }
+
+        // Draw the map canvas (basemap + line/polygon layers)
+        ctx.drawImage(mapCanvas, sx, sy, sw, sh, 0, 0, width, height);
 
         // Overlay deck.gl canvases (points, icons, labels)
         const deckCanvases = container.querySelectorAll("canvas");
         for (const c of deckCanvases) {
           if (c === mapCanvas) continue;
           try {
-            ctx.drawImage(c, 0, 0, width, height);
+            ctx.drawImage(c, sx, sy, sw, sh, 0, 0, width, height);
           } catch {
             // cross-origin or tainted canvas — skip
           }

@@ -300,8 +300,8 @@ export function bboxToPolygon(bbox: TBBox): Polygon {
  * without absolutely hitting them as features.
  */
 export function bufferPoint(
-  point: mapboxgl.Point,
-): [mapboxgl.PointLike, mapboxgl.PointLike] {
+  point: maplibregl.Point,
+): [maplibregl.PointLike, maplibregl.PointLike] {
   const ry = 10;
   const rx = ry;
   return [

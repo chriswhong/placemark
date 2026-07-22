@@ -1,9 +1,8 @@
-import { env } from "app/lib/env_client";
 import type { ILayerConfig } from "types";
 
 const defaults = {
   type: "MAPBOX",
-  token: env.MAPBOX_TOKEN,
+  token: "",
 } as const;
 
 export type LayerConfigTemplate = Pick<
@@ -13,23 +12,23 @@ export type LayerConfigTemplate = Pick<
 
 const LAYERS: Record<string, LayerConfigTemplate> = {
   MONOCHROME: {
-    name: "Monochrome",
-    url: "mapbox://styles/mapbox/light-v11",
+    name: "Positron",
+    url: "https://tiles.openfreemap.org/styles/positron",
     ...defaults,
   },
   DARK: {
     name: "Dark",
-    url: "mapbox://styles/mapbox/dark-v11",
+    url: "https://tiles.openfreemap.org/styles/dark",
     ...defaults,
   },
   SATELLITE: {
-    name: "Satellite",
-    url: "mapbox://styles/mapbox/satellite-streets-v11",
+    name: "Liberty",
+    url: "https://tiles.openfreemap.org/styles/liberty",
     ...defaults,
   },
   STREETS: {
-    name: "Streets",
-    url: "mapbox://styles/mapbox/navigation-guidance-day-v4",
+    name: "Bright",
+    url: "https://tiles.openfreemap.org/styles/bright",
     ...defaults,
   },
 };

@@ -1,6 +1,6 @@
-import { getMapboxLayerURL, getTileJSON } from "app/lib/utils";
+import { getStyleURL, getTileJSON } from "app/lib/utils";
 import once from "lodash/once";
-import mapboxgl from "mapbox-gl";
+import type { StyleSpecification, LayerSpecification, RasterLayerSpecification } from "@maplibre/maplibre-gl-style-spec";
 import { toast } from "react-hot-toast";
 import type { ILayerConfig } from "types";
 
@@ -9,15 +9,12 @@ const warnOffline = once(() => {
 });
 
 export async function addMapboxStyle(
-  _base: mapboxgl.Style,
+  _base: StyleSpecification,
   layer: ILayerConfig,
-): Promise<mapboxgl.Style> {
-  const nextToken = layer.token;
-  mapboxgl.accessToken = nextToken;
+): Promise<StyleSpecification> {
+  const url = getStyleURL(layer);
 
-  const url = getMapboxLayerURL(layer);
-
-  const style: mapboxgl.Style = await fetch(url)
+  const style: StyleSpecification = await fetch(url)
     .then((res) => {
       if (!res?.ok) {
         throw new Error("Could not fetch layer");
@@ -29,8 +26,6 @@ export async function addMapboxStyle(
       return {
         version: 8,
         name: "Empty",
-        sprite: "mapbox://sprites/mapbox/streets-v8",
-        glyphs: "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
         sources: {},
         layers: [],
       };
@@ -44,12 +39,12 @@ export async function addMapboxStyle(
 }
 
 function updateMapboxStyle(
-  style: mapboxgl.Style,
+  style: StyleSpecification,
   options: {
     labelVisibility?: boolean;
     rasterOpacity?: number;
   },
-): mapboxgl.Style {
+): StyleSpecification {
   const { labelVisibility = true, rasterOpacity } = options;
 
   if (!style.layers) {
@@ -96,21 +91,20 @@ function updateMapboxStyle(
 
       return layer;
     })
-    .filter(Boolean) as mapboxgl.AnyLayer[];
+    .filter(Boolean) as LayerSpecification[];
 
-  // Strip globe projection and fog from v11 styles so that deck.gl uses
-  // a flat mercator view.  Globe projection causes back-face culling that
-  // hides flat icon quads (pins, emojis) rendered by deck.gl IconLayer.
+  // Strip globe projection and fog from styles so that deck.gl uses
+  // a flat mercator view.
   const { projection: _p, fog: _f, ...rest } = style as Record<string, unknown>;
 
   return {
     ...rest,
     layers: updatedLayers,
-  } as mapboxgl.Style;
+  } as StyleSpecification;
 }
 function paintLayoutFromRasterLayer(
   layer: ILayerConfig,
-): Pick<mapboxgl.RasterLayer, "type" | "paint" | "layout"> {
+): Pick<RasterLayerSpecification, "type" | "paint" | "layout"> {
   return {
     type: "raster",
     paint: {
@@ -123,12 +117,10 @@ function paintLayoutFromRasterLayer(
 }
 
 export async function addTileJSONStyle(
-  style: mapboxgl.Style,
+  style: StyleSpecification,
   layer: ILayerConfig,
   id: number,
 ) {
-  // mapboxgl.accessToken = env.NEXT_PUBLIC_MAPBOX_TOKEN;
-
   const sourceId = `squidmapsInternalSource${id}`;
   const layerId = `squidmapsInternalLayer${id}`;
 
@@ -148,7 +140,7 @@ export async function addTileJSONStyle(
       id: layerId,
       source: sourceId,
       ...paintLayoutFromRasterLayer(layer),
-    } as mapboxgl.AnyLayer;
+    } as LayerSpecification;
 
     style.layers.push(newLayer);
   } catch (_e) {
@@ -160,12 +152,10 @@ export async function addTileJSONStyle(
 }
 
 export function addXYZStyle(
-  style: mapboxgl.Style,
+  style: StyleSpecification,
   layer: ILayerConfig,
   id: number,
 ) {
-  // mapboxgl.accessToken = env.NEXT_PUBLIC_MAPBOX_TOKEN;
-
   const sourceId = `squidmapsInternalSource${id}`;
   const layerId = `squidmapsInternalLayer${id}`;
 
@@ -180,7 +170,7 @@ export function addXYZStyle(
     id: layerId,
     source: sourceId,
     ...paintLayoutFromRasterLayer(layer),
-  } as mapboxgl.AnyLayer;
+  } as LayerSpecification;
 
   style.layers.push(newLayer);
 

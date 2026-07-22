@@ -69,8 +69,8 @@ export const zLayerConfig = z.discriminatedUnion("type", [
   }),
   zLayerConfigCommon.extend({
     type: z.literal("MAPBOX"),
-    token: z.string().startsWith("pk."),
-    url: z.string().startsWith("mapbox://"),
+    token: z.string(),
+    url: z.string(),
   }),
   zLayerConfigCommon.extend({
     type: z.literal("TILEJSON"),
@@ -356,7 +356,7 @@ export interface HandlerContext {
   flatbushInstance: FlatbushLike;
   dragTargetRef: React.MutableRefObject<DragTarget | null>;
   mode: ModeWithOptions;
-  throttledMovePointer: (arg0: mapboxgl.Point) => void;
+  throttledMovePointer: (arg0: maplibregl.Point) => void;
   featureMap: FeatureMap;
   folderMap: FolderMap;
   idMap: IDMap;

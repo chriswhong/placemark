@@ -32,7 +32,7 @@ export function useRectangleHandlers({
   const pmap = useContext(MapContext);
   const setCursor = useSetAtom(cursorStyleAtom);
   const transact = rep.useTransact();
-  const [firstCorner, setFirstCorner] = useState<mapboxgl.Point | null>(null);
+  const [firstCorner, setFirstCorner] = useState<maplibregl.Point | null>(null);
   return {
     click: noop,
     move: (e) => {
