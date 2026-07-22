@@ -12,7 +12,8 @@ import { MapContext } from "app/context/map_context";
 import { useImportFile, useImportString } from "app/hooks/use_import";
 import { DEFAULT_IMPORT_OPTIONS, detectType } from "app/lib/convert";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { ChevronLeftIcon } from "@radix-ui/react-icons";
+import { usePersistence } from "app/lib/persistence/context";
+import { ChevronLeftIcon, Pencil2Icon } from "@radix-ui/react-icons";
 import { Switch, Tooltip as T } from "radix-ui";
 import { TContent, StyledTooltipArrow } from "./elements";
 import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -196,6 +197,91 @@ function RightSidebarContent() {
   );
 }
 
+function MapDescriptionEditor() {
+  const rep = usePersistence();
+  const [meta, setMeta] = rep.useMetadata();
+  const description = meta.type === "memory" ? meta.description ?? "" : "";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(description);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function startEditing() {
+    setDraft(description);
+    setEditing(true);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  }
+
+  function save() {
+    const trimmed = draft.trim();
+    setEditing(false);
+    if (trimmed !== description) {
+      setMeta({ description: trimmed });
+    }
+  }
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      setEditing(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="px-3 pb-2">
+        <textarea
+          ref={textareaRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={save}
+          onKeyDown={onKeyDown}
+          placeholder="Add a description…"
+          rows={2}
+          className="w-full text-xs text-[#5b7d76] bg-white border border-[#1f7a6c] rounded px-1.5 py-1 outline-none focus:ring-2 focus:ring-[#1f7a6c]/30 resize-none"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-3 pb-2">
+      <button
+        onClick={startEditing}
+        className="text-xs text-[#8fa8a2] hover:text-[#5b7d76] transition-colors text-left w-full"
+        title="Click to edit description"
+      >
+        {description || "Add a description…"}
+      </button>
+    </div>
+  );
+}
+
+function PreviewTitleOverlay({ mapTitle, username }: { mapTitle: string; username: string }) {
+  const rep = usePersistence();
+  const [meta] = rep.useMetadata();
+  const description = meta.type === "memory" ? meta.description ?? "" : "";
+
+  return (
+    <div className="absolute top-4 left-4 z-10">
+      <div
+        className="bg-white/90 backdrop-blur-sm rounded-xl px-5 py-4 border border-[#dde6e2] max-w-sm"
+        style={{ boxShadow: panelShadow }}
+      >
+        <div className="font-semibold text-[#12312c] text-lg leading-snug">
+          {mapTitle}
+        </div>
+        <div className="text-sm text-[#8fa8a2]">
+          @{username}
+        </div>
+        {description && (
+          <div className="text-sm text-[#5b7d76] mt-2 leading-relaxed">
+            {description}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface SquidmapsProps {
   username: string;
   mapSlug: string;
@@ -241,11 +327,21 @@ async function captureAndUploadThumbnail(pmap: PMap | null, mapSlug: string) {
 
 export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
   const [map, setMap] = useState<PMap | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isPreview = searchParams?.get("preview") === "true";
 
   const handleBackToMaps = useCallback(async () => {
     await captureAndUploadThumbnail(map, mapSlug);
     window.location.href = `/@${username}`;
   }, [map, mapSlug, username]);
+
+  const enterPreview = useCallback(() => {
+    setSearchParams("?preview=true");
+  }, [setSearchParams]);
+
+  const exitPreview = useCallback(() => {
+    setSearchParams("");
+  }, [setSearchParams]);
 
   return (
     <main className="h-screen flex flex-col">
@@ -255,79 +351,106 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
             <MapComponent setMap={setMap} />
             <Legend />
 
-            {/* Mode toolbar — bottom center pill */}
-            <div
-              className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center bg-white rounded-full border border-[#dde6e2] px-2"
-              style={{ boxShadow: panelShadow }}
-            >
-              <Modes replaceGeometryForId={null} />
-            </div>
+            {isPreview ? (
+              <>
+                {/* Preview mode: title overlay */}
+                <PreviewTitleOverlay
+                  mapTitle={mapTitle}
+                  username={username}
+                />
 
+                {/* Preview mode: back to editor button */}
+                <div className="absolute top-4 right-4 z-10">
+                  <button
+                    onClick={exitPreview}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-[#dde6e2] text-[#5b7d76] hover:bg-white hover:text-[#12312c] transition-colors font-semibold"
+                    style={{ boxShadow: panelShadow }}
+                  >
+                    <Pencil2Icon className="w-3 h-3" />
+                    Back to editor
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Mode toolbar — bottom center pill */}
+                <div
+                  className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center bg-white rounded-full border border-[#dde6e2] px-2"
+                  style={{ boxShadow: panelShadow }}
+                >
+                  <Modes replaceGeometryForId={null} />
+                </div>
 
-            {/* Left panel */}
-            <div
-              className="absolute top-3 bottom-3 left-3 z-10 w-[270px] flex flex-col bg-white rounded-2xl border border-[#dde6e2] overflow-hidden"
-              style={{ boxShadow: panelShadow }}
-            >
-              <div className="flex items-center gap-x-2 px-3 py-2.5 border-b border-[#dde6e2] shrink-0">
-                <T.Root delayDuration={300}>
-                  <T.Trigger asChild>
+                {/* Left panel */}
+                <div
+                  className="absolute top-3 bottom-3 left-3 z-10 w-[270px] flex flex-col bg-white rounded-2xl border border-[#dde6e2] overflow-hidden"
+                  style={{ boxShadow: panelShadow }}
+                >
+                  <div className="flex items-center gap-x-2 px-3 py-2.5 border-b border-[#dde6e2] shrink-0">
+                    <T.Root delayDuration={300}>
+                      <T.Trigger asChild>
+                        <button
+                          onClick={handleBackToMaps}
+                          className="text-[#8fa8a2] hover:text-[#12312c] transition-colors shrink-0"
+                        >
+                          <ChevronLeftIcon className="w-5 h-5" />
+                        </button>
+                      </T.Trigger>
+                      <T.Portal>
+                        <TContent side="right">
+                          Back to maps
+                          <StyledTooltipArrow />
+                        </TContent>
+                      </T.Portal>
+                    </T.Root>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <MapTitleBar
+                        username={username}
+                        mapSlug={mapSlug}
+                        initialTitle={mapTitle}
+                      />
+                      <span className="text-xs text-[#8fa8a2] truncate">
+                        /@{username}/{mapSlug}
+                      </span>
+                    </div>
+                  </div>
+                  <MapDescriptionEditor />
+                  <div className="px-3 pt-2 shrink-0">
+                    <span className="text-[10px] font-semibold text-[#8fa8a2] uppercase tracking-wide">
+                      Features
+                    </span>
+                  </div>
+                  <FeatureEditorFolderInner />
+                </div>
+
+                <DebugPanel />
+
+                {/* Right panel */}
+                <div
+                  className="absolute top-3 bottom-3 right-3 z-10 w-[270px] flex flex-col bg-white rounded-2xl border border-[#dde6e2] overflow-hidden"
+                  style={{ boxShadow: panelShadow }}
+                >
+                  <div className="flex items-center gap-x-2 px-3 py-2.5 border-b border-[#dde6e2] shrink-0">
+                    <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center bg-[#12312c] text-white text-xs font-bold shrink-0 select-none">
+                      {username[0]?.toUpperCase() ?? "?"}
+                    </div>
+                    <div className="flex-1" />
                     <button
-                      onClick={handleBackToMaps}
-                      className="text-[#8fa8a2] hover:text-[#12312c] transition-colors shrink-0"
+                      onClick={enterPreview}
+                      className="text-xs px-2.5 py-1 rounded-full border border-[#dde6e2] text-[#5b7d76] hover:bg-[#eef3f1] transition-colors font-semibold"
                     >
-                      <ChevronLeftIcon className="w-5 h-5" />
+                      Preview
                     </button>
-                  </T.Trigger>
-                  <T.Portal>
-                    <TContent side="right">
-                      Back to maps
-                      <StyledTooltipArrow />
-                    </TContent>
-                  </T.Portal>
-                </T.Root>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <MapTitleBar
-                    username={username}
-                    mapSlug={mapSlug}
-                    initialTitle={mapTitle}
-                  />
-                  <span className="text-xs text-[#8fa8a2] truncate">
-                    /@{username}/{mapSlug}
-                  </span>
+                    <button className="text-xs px-2.5 py-1 rounded-full bg-[#1f7a6c] hover:bg-[#196358] text-white transition-colors font-semibold">
+                      Publish
+                    </button>
+                  </div>
+                  <div className="flex-auto overflow-y-auto squidmaps-scrollbar">
+                    <RightSidebarContent />
+                  </div>
                 </div>
-              </div>
-              <div className="px-3 pt-2 shrink-0">
-                <span className="text-[10px] font-semibold text-[#8fa8a2] uppercase tracking-wide">
-                  Features
-                </span>
-              </div>
-              <FeatureEditorFolderInner />
-            </div>
-
-            <DebugPanel />
-
-            {/* Right panel */}
-            <div
-              className="absolute top-3 bottom-3 right-3 z-10 w-[270px] flex flex-col bg-white rounded-2xl border border-[#dde6e2] overflow-hidden"
-              style={{ boxShadow: panelShadow }}
-            >
-              <div className="flex items-center gap-x-2 px-3 py-2.5 border-b border-[#dde6e2] shrink-0">
-                <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center bg-[#12312c] text-white text-xs font-bold shrink-0 select-none">
-                  {username[0]?.toUpperCase() ?? "?"}
-                </div>
-                <div className="flex-1" />
-                <button className="text-xs px-2.5 py-1 rounded-full border border-[#dde6e2] text-[#5b7d76] hover:bg-[#eef3f1] transition-colors font-semibold">
-                  Preview
-                </button>
-                <button className="text-xs px-2.5 py-1 rounded-full bg-[#1f7a6c] hover:bg-[#196358] text-white transition-colors font-semibold">
-                  Publish
-                </button>
-              </div>
-              <div className="flex-auto overflow-y-auto squidmaps-scrollbar">
-                <RightSidebarContent />
-              </div>
-            </div>
+              </>
+            )}
           </div>
           <Drop />
           <UrlAPI />

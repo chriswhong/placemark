@@ -95,6 +95,7 @@ export const memoryMetaAtom = atom<Omit<PersistenceMetadataMemory, "type">>({
   label: null,
   layer: null,
   bounds: null,
+  description: "",
 });
 
 export const searchHistoryAtom = atom<string[]>([]);
