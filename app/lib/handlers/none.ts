@@ -161,6 +161,7 @@ export function useNoneHandlers({
             void startSnapshot(wrappedFeature);
             dragTargetRef.current = id;
             setSelection(USelection.single(wrappedFeature.id));
+            e.preventDefault();
           } else if (
             selection.type === "single" &&
             selection.id === wrappedFeature.id
@@ -184,8 +185,11 @@ export function useNoneHandlers({
               UIDMap.getIntID(idMap, selection.id),
               0,
             );
+            e.preventDefault();
           }
-          e.preventDefault();
+          // When no drag target is set (e.g. clicking an unselected polygon
+          // without a current single selection), don't preventDefault — let
+          // MapLibre handle pan/drag normally. Selection happens on click.
         }
 
         return;
