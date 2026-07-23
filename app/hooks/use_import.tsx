@@ -8,6 +8,7 @@ import {
 import type { ShapefileGroup } from "app/lib/convert/shapefile";
 import { Shapefile } from "app/lib/convert/shapefile";
 import type { ConvertResult } from "app/lib/convert/utils";
+import { e6feature } from "app/lib/geometry";
 import { newFeatureId } from "app/lib/id";
 import { usePersistence } from "app/lib/persistence/context";
 import {
@@ -90,7 +91,7 @@ function resultToTransact({
         at: ats[i],
         folderId: existingFolderId ?? null,
         id: newFeatureId(),
-        feature: applyPropertyMapping(feature, propertyMapping),
+        feature: e6feature(applyPropertyMapping(feature, propertyMapping)),
       };
     }),
   };

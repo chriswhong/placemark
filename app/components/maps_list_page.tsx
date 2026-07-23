@@ -9,6 +9,13 @@ interface MapRecord {
   created_at: string;
   updated_at: string;
   has_thumbnail: boolean;
+  data_size: number;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 interface MapsListPageProps {
@@ -248,8 +255,10 @@ export function MapsListPage({ username }: MapsListPageProps) {
                       <div className="font-extrabold text-[#12312c] text-sm truncate">
                         {map.title}
                       </div>
-                      <div className="text-xs text-[#8fa8a2] mt-0.5 truncate">
-                        updated {new Date(map.updated_at).toLocaleDateString()}
+                      <div className="text-xs text-[#8fa8a2] mt-0.5 flex items-center gap-1.5">
+                        <span className="truncate">updated {new Date(map.updated_at).toLocaleDateString()}</span>
+                        <span className="shrink-0">&middot;</span>
+                        <span className="shrink-0">{formatBytes(map.data_size)}</span>
                       </div>
                     </div>
                   </a>

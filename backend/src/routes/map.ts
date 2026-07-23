@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import sql from "../db.js";
 
+const MAX_MAP_DATA_BYTES = 5 * 1024 * 1024; // 5 MB
+
 interface TransactBody {
   putFeatures?: Array<{ id: string; [key: string]: unknown }>;
   deleteFeatures?: string[];
@@ -67,46 +69,81 @@ export async function mapRoutes(fastify: FastifyInstance) {
         deleteLayerConfigs = [],
       } = req.body;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await sql.begin(async (tx: any) => {
-        for (const f of putFeatures) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await tx`
-            INSERT INTO features (id, data, map_id) VALUES (${f.id}, ${tx.json(f as any)}, ${mapId})
-            ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
-          `;
-        }
-        if (deleteFeatures.length > 0) {
-          await tx`DELETE FROM features WHERE id = ANY(${deleteFeatures}) AND map_id = ${mapId}`;
-        }
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await sql.begin(async (tx: any) => {
+          for (const f of putFeatures) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await tx`
+              INSERT INTO features (id, data, map_id) VALUES (${f.id}, ${tx.json(f as any)}, ${mapId})
+              ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
+            `;
+          }
+          if (deleteFeatures.length > 0) {
+            await tx`DELETE FROM features WHERE id = ANY(${deleteFeatures}) AND map_id = ${mapId}`;
+          }
 
-        for (const f of putFolders) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await tx`
-            INSERT INTO folders (id, data, map_id) VALUES (${f.id}, ${tx.json(f as any)}, ${mapId})
-            ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
-          `;
-        }
-        if (deleteFolders.length > 0) {
-          await tx`DELETE FROM folders WHERE id = ANY(${deleteFolders}) AND map_id = ${mapId}`;
-        }
+          for (const f of putFolders) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await tx`
+              INSERT INTO folders (id, data, map_id) VALUES (${f.id}, ${tx.json(f as any)}, ${mapId})
+              ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
+            `;
+          }
+          if (deleteFolders.length > 0) {
+            await tx`DELETE FROM folders WHERE id = ANY(${deleteFolders}) AND map_id = ${mapId}`;
+          }
 
-        for (const lc of putLayerConfigs) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await tx`
-            INSERT INTO layer_configs (id, data, map_id) VALUES (${lc.id}, ${tx.json(lc as any)}, ${mapId})
-            ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
-          `;
+          for (const lc of putLayerConfigs) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await tx`
+              INSERT INTO layer_configs (id, data, map_id) VALUES (${lc.id}, ${tx.json(lc as any)}, ${mapId})
+              ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
+            `;
+          }
+          if (deleteLayerConfigs.length > 0) {
+            await tx`DELETE FROM layer_configs WHERE id = ANY(${deleteLayerConfigs}) AND map_id = ${mapId}`;
+          }
+
+          // Check total feature data size after mutations — rollback if over limit
+          if (putFeatures.length > 0) {
+            const [{ total }] = await tx<[{ total: number }]>`
+              SELECT COALESCE(SUM(pg_column_size(data)), 0)::int AS total
+              FROM features WHERE map_id = ${mapId}
+            `;
+            if (total > MAX_MAP_DATA_BYTES) {
+              throw new Error("MAP_SIZE_LIMIT");
+            }
+          }
+        });
+      } catch (err) {
+        if (err instanceof Error && err.message === "MAP_SIZE_LIMIT") {
+          return reply.status(413).send({
+            error: "Map data exceeds the 5 MB size limit. Remove some features before adding more.",
+          });
         }
-        if (deleteLayerConfigs.length > 0) {
-          await tx`DELETE FROM layer_configs WHERE id = ANY(${deleteLayerConfigs}) AND map_id = ${mapId}`;
-        }
-      });
+        throw err;
+      }
 
       // Touch the map's updated_at
       await sql`UPDATE maps SET updated_at = now() WHERE id = ${mapId}`;
 
       return { ok: true };
+    },
+  );
+
+  // GET /api/maps/:mapSlug/size — return the total feature data size in bytes
+  fastify.get<{ Params: { mapSlug: string } }>(
+    "/maps/:mapSlug/size",
+    async (req, reply) => {
+      const mapId = await getMapId(req.userId, req.params.mapSlug);
+      if (!mapId) return reply.status(404).send({ error: "Map not found" });
+
+      const [{ total }] = await sql<[{ total: number }]>`
+        SELECT COALESCE(SUM(pg_column_size(data)), 0)::int AS total
+        FROM features WHERE map_id = ${mapId}
+      `;
+      return { bytes: total, limit: MAX_MAP_DATA_BYTES };
     },
   );
 

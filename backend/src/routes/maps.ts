@@ -37,10 +37,17 @@ export async function mapsRoutes(fastify: FastifyInstance) {
   // GET /api/maps — list all maps for the current user
   fastify.get("/maps", async (req) => {
     const maps = await sql<Row[]>`
-      SELECT id, slug, title, created_at, updated_at, (thumbnail IS NOT NULL) AS has_thumbnail
-      FROM maps
-      WHERE user_id = ${req.userId}
-      ORDER BY updated_at DESC
+      SELECT
+        m.id, m.slug, m.title, m.created_at, m.updated_at,
+        (m.thumbnail IS NOT NULL) AS has_thumbnail,
+        COALESCE(s.data_size, 0)::int AS data_size
+      FROM maps m
+      LEFT JOIN LATERAL (
+        SELECT SUM(pg_column_size(data))::bigint AS data_size
+        FROM features WHERE map_id = m.id
+      ) s ON true
+      WHERE m.user_id = ${req.userId}
+      ORDER BY m.updated_at DESC
     `;
     return maps;
   });

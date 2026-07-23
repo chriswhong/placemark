@@ -18,7 +18,7 @@ import { usePersistence } from "app/lib/persistence/context";
 import { ChevronLeftIcon, Cross2Icon, Pencil2Icon } from "@radix-ui/react-icons";
 import { Switch, Tooltip as T } from "radix-ui";
 import { TContent, StyledTooltipArrow } from "./elements";
-import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { activeInteractionAtom, dataAtom, dialogAtom, layerConfigAtom, scaleUnitAtom, scaleVisibleAtom, selectedFeaturesAtom, zoomControlVisibleAtom, type ActiveInteraction } from "state/jotai";
 import { DECK_SYNTHETIC_ID } from "app/lib/constants";
@@ -602,35 +602,77 @@ function InteractionOverlay() {
   );
 }
 
+const MAX_MAP_BYTES = 5 * 1024 * 1024; // 5 MB — keep in sync with backend
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function useMapDataSize(data: { featureMap: Map<string, unknown> }) {
+  return useMemo(() => {
+    const features = [...data.featureMap.values()];
+    // Approximate the serialized JSON size — matches what the DB stores
+    const json = JSON.stringify(features);
+    return new Blob([json]).size;
+  }, [data.featureMap]);
+}
+
 function DebugPanel() {
   const map = useContext(MapContext);
   const data = useAtomValue(dataAtom);
+  const sizeBytes = useMapDataSize(data);
+  const pct = Math.min((sizeBytes / MAX_MAP_BYTES) * 100, 100);
+  const isNearLimit = pct > 80;
+  const isOverLimit = pct >= 100;
+
   return (
-    <div className="flex gap-1 px-3 py-2 border-t border-[#dde6e2]">
-      <button
-        className="text-[10px] px-2 py-0.5 rounded border border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 bg-white/80 transition-colors font-mono"
-        onClick={() => {
-          if (map) {
+    <div className="flex flex-col gap-1.5 px-3 py-2 border-t border-[#dde6e2]">
+      {/* Size indicator */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1.5 rounded-full bg-[#dde6e2] overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              isOverLimit ? "bg-red-500" : isNearLimit ? "bg-amber-500" : "bg-[#1f7a6c]"
+            }`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className={`text-[10px] font-mono shrink-0 ${
+          isOverLimit ? "text-red-600" : isNearLimit ? "text-amber-600" : "text-[#8fa8a2]"
+        }`}>
+          {formatBytes(sizeBytes)} / 5 MB
+        </span>
+      </div>
+
+      {/* Debug buttons */}
+      <div className="flex gap-1">
+        <button
+          className="text-[10px] px-2 py-0.5 rounded border border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 bg-white/80 transition-colors font-mono"
+          onClick={() => {
+            if (map) {
+              // eslint-disable-next-line no-console
+              console.log("Map style:", map.map.getStyle());
+            }
+          }}
+        >
+          log style
+        </button>
+        <button
+          className="text-[10px] px-2 py-0.5 rounded border border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 bg-white/80 transition-colors font-mono"
+          onClick={() => {
+            const fc = {
+              type: "FeatureCollection" as const,
+              features: [...data.featureMap.values()].map((wf) => wf.feature),
+            };
             // eslint-disable-next-line no-console
-            console.log("Map style:", map.map.getStyle());
-          }
-        }}
-      >
-        log style
-      </button>
-      <button
-        className="text-[10px] px-2 py-0.5 rounded border border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 bg-white/80 transition-colors font-mono"
-        onClick={() => {
-          const fc = {
-            type: "FeatureCollection" as const,
-            features: [...data.featureMap.values()].map((wf) => wf.feature),
-          };
-          // eslint-disable-next-line no-console
-          console.log(JSON.stringify(fc, null, 2));
-        }}
-      >
-        log features
-      </button>
+            console.log(JSON.stringify(fc, null, 2));
+          }}
+        >
+          log features
+        </button>
+      </div>
     </div>
   );
 }
