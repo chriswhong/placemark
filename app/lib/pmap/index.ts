@@ -32,6 +32,7 @@ import {
   DEFAULT_CIRCLE_FILL,
   DEFAULT_CIRCLE_STROKE,
   DEFAULT_MARKER_SIZE,
+  DEFAULT_STROKE_WIDTH,
 } from "app/lib/marker_types";
 import type { IDMap } from "app/lib/id_mapper";
 import loadAndAugmentStyle, {
@@ -715,7 +716,7 @@ export default class PMap {
           const props = (f.properties ?? {}) as Record<string, unknown>;
           return typeof props["stroke-width"] === "number"
             ? props["stroke-width"]
-            : 2;
+            : DEFAULT_STROKE_WIDTH;
         },
         lineWidthUnits: "pixels" as const,
         getPointRadius: (f: GeoJSON.Feature) => {
