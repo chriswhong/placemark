@@ -33,7 +33,7 @@ import Markdown from "react-markdown";
 import { useSearchParams } from "wouter";
 import Modes from "app/components/modes";
 import { FeatureEditorFolderInner } from "./panels/feature_editor/feature_editor_folder";
-import { FeatureStylePanel } from "./feature_style_panel";
+import { FeatureStylePanel, MultiFeatureStylePanel } from "./feature_style_panel";
 
 function UrlAPI() {
   const doImportString = useImportString();
@@ -246,6 +246,9 @@ function RightSidebarContent() {
   const selectedFeatures = useAtomValue(selectedFeaturesAtom);
   if (selectedFeatures.length === 1) {
     return <FeatureStylePanel />;
+  }
+  if (selectedFeatures.length > 1) {
+    return <MultiFeatureStylePanel />;
   }
   return (
     <div>
@@ -601,8 +604,9 @@ function InteractionOverlay() {
 
 function DebugPanel() {
   const map = useContext(MapContext);
+  const data = useAtomValue(dataAtom);
   return (
-    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10">
+    <div className="flex gap-1 px-3 py-2 border-t border-[#dde6e2]">
       <button
         className="text-[10px] px-2 py-0.5 rounded border border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 bg-white/80 transition-colors font-mono"
         onClick={() => {
@@ -613,6 +617,19 @@ function DebugPanel() {
         }}
       >
         log style
+      </button>
+      <button
+        className="text-[10px] px-2 py-0.5 rounded border border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 bg-white/80 transition-colors font-mono"
+        onClick={() => {
+          const fc = {
+            type: "FeatureCollection" as const,
+            features: [...data.featureMap.values()].map((wf) => wf.feature),
+          };
+          // eslint-disable-next-line no-console
+          console.log(JSON.stringify(fc, null, 2));
+        }}
+      >
+        log features
       </button>
     </div>
   );
@@ -753,9 +770,10 @@ export function Squidmaps({ username, mapSlug, mapTitle }: SquidmapsProps) {
                     </button>
                   </div>
                   <FeatureEditorFolderInner />
+                  <div className="mt-auto">
+                    <DebugPanel />
+                  </div>
                 </div>
-
-                <DebugPanel />
 
                 {/* Right panel */}
                 <div

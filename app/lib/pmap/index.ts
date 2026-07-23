@@ -23,7 +23,6 @@ import {
   CURSOR_DEFAULT,
   DECK_SYNTHETIC_ID,
   DEFAULT_MAP_BOUNDS,
-  LINE_COLORS_SELECTED,
   LINE_COLORS_SELECTED_RGB,
   purple900,
   WHITE,
@@ -350,7 +349,7 @@ export default class PMap {
   lastLayer: LayerConfigMap | null;
   lastPreviewProperty: PreviewProperty;
   overlay: MapboxOverlay;
-  lastSelectionEphemeralPoint: GeoJSON.Feature | null = null;
+  lastSelectionPoints: GeoJSON.Feature[] = [];
   emojiAtlas: string | null = null;
   emojiMapping: EmojiIconMapping | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -462,8 +461,7 @@ export default class PMap {
     this.handlers.current.onMapMouseUp(e);
   };
 
-  _computeOutlinePath(): [number, number][] | null {
-    const f = this.lastSelectionEphemeralPoint;
+  _computeOutlinePathForFeature(f: GeoJSON.Feature): [number, number][] | null {
     if (!f || f.geometry?.type !== "Point") return null;
     const [lng, lat] = (f.geometry as GeoJSON.Point).coordinates;
     const center = this.map.project([lng, lat] as maplibregl.LngLatLike);
@@ -483,12 +481,21 @@ export default class PMap {
     }
   }
 
+  _computeOutlinePaths(): [number, number][][] {
+    const paths: [number, number][][] = [];
+    for (const f of this.lastSelectionPoints) {
+      const path = this._computeOutlinePathForFeature(f);
+      if (path) paths.push(path);
+    }
+    return paths;
+  }
+
   onZoom = () => {
-    if (!this.lastSelectionEphemeralPoint || !this.lastDeckLayers.length) return;
-    const path = this._computeOutlinePath();
+    if (!this.lastSelectionPoints.length || !this.lastDeckLayers.length) return;
+    const paths = this._computeOutlinePaths();
     const newOutlineLayer = new PolygonLayer({
       id: DECK_POINT_SELECTION_ID,
-      data: path ? [path] : [],
+      data: paths,
       getPolygon: (d: [number, number][]) => d,
       filled: false,
       stroked: true,
@@ -609,11 +616,6 @@ export default class PMap {
         ? this.lastSymbolization.defaultOpacity
         : 0.3;
 
-    const SELECTED: [number, number, number, number] = [
-      ...LINE_COLORS_SELECTED_RGB,
-      255,
-    ];
-
     // Separate line/polygon features for mapbox GL rendering
     const LINE_POLY_TYPES = new Set([
       "LineString", "MultiLineString", "Polygon", "MultiPolygon",
@@ -667,7 +669,6 @@ export default class PMap {
     const makeGeoJsonLayer = (
       id: string,
       features: Feature[],
-      selectionIds: Set<RawId>,
     ) =>
       new GeoJsonLayer({
         id,
@@ -679,7 +680,6 @@ export default class PMap {
         filled: true,
         stroked: true,
         getFillColor: (f: GeoJSON.Feature) => {
-          if (selectionIds.has(f.id as RawId)) return SELECTED;
           const props = (f.properties ?? {}) as Record<string, unknown>;
           const type = f.geometry?.type;
           const isPoint = type === "Point" || type === "MultiPoint";
@@ -699,7 +699,6 @@ export default class PMap {
           return color;
         },
         getLineColor: (f: GeoJSON.Feature) => {
-          if (selectionIds.has(f.id as RawId)) return SELECTED;
           const props = (f.properties ?? {}) as Record<string, unknown>;
           const type = f.geometry?.type;
           const isPoint = type === "Point" || type === "MultiPoint";
@@ -725,8 +724,8 @@ export default class PMap {
         },
         pointRadiusUnits: "pixels" as const,
         updateTriggers: {
-          getFillColor: [selectionIds, defaultColor, defaultOpacity],
-          getLineColor: [selectionIds, defaultColor],
+          getFillColor: [defaultColor, defaultOpacity],
+          getLineColor: [defaultColor],
           getLineWidth: [],
         },
       });
@@ -745,16 +744,22 @@ export default class PMap {
       ...pointEphemeral.filter(isEmojiFeature),
     ] as GeoJSON.Feature[];
 
-    // Compute selection outline polygon in screen space, then unproject to lng/lat
-    this.lastSelectionEphemeralPoint =
-      groups.ephemeral.find((f) => f.geometry?.type === "Point") ?? null;
+    // Compute selection outline polygons in screen space, then unproject to lng/lat.
+    // For single selection, the point is in ephemeral; for multi, points stay in features.
+    const ephemeralPoint = groups.ephemeral.find((f) => f.geometry?.type === "Point");
+    const multiSelectedPoints = groups.selectionIds.size > 0
+      ? pointFeatures.filter((f) => groups.selectionIds.has(f.id as RawId) && f.geometry?.type === "Point")
+      : [];
+    this.lastSelectionPoints = ephemeralPoint
+      ? [ephemeralPoint, ...multiSelectedPoints]
+      : multiSelectedPoints;
 
-    const selectionOutlinePath = this._computeOutlinePath();
+    const selectionOutlinePaths = this._computeOutlinePaths();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nextLayers: any[] = [
-        makeGeoJsonLayer(DECK_FEATURES_ID, nonSpecialFeatures, groups.selectionIds),
-        makeGeoJsonLayer(DECK_EPHEMERAL_ID, nonSpecialEphemeral, new Set()),
+        makeGeoJsonLayer(DECK_FEATURES_ID, nonSpecialFeatures),
+        makeGeoJsonLayer(DECK_EPHEMERAL_ID, nonSpecialEphemeral),
         new ScatterplotLayer<IFeature<Point>>({
           id: DECK_SYNTHETIC_ID,
 
@@ -790,7 +795,7 @@ export default class PMap {
         }),
         new PolygonLayer({
           id: DECK_POINT_SELECTION_ID,
-          data: selectionOutlinePath ? [selectionOutlinePath] : [],
+          data: selectionOutlinePaths,
           getPolygon: (d) => d,
           filled: false,
           stroked: true,
